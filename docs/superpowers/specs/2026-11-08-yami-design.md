@@ -1,6 +1,6 @@
-# Rasikh — Design Spec
+# Yami — Design Spec
 
-*Working name. "Rasikh" (راسخ) means firmly rooted, steadfast.*
+*App name: **Yami** (闇, "darkness"). Concept: "The System". Your life is the quest; light vs corruption.*
 Date: 2026-11-08 · Status: draft, awaiting review
 
 ## 1. Why this exists
@@ -138,3 +138,12 @@ respects reduced motion; no generic AI look.
 - Component tests for the Urge flow and the Check-in.
 - Manual device checklist for the Android native module (permission flows, overlay
   launch, usage accuracy against Android Digital Wellbeing).
+
+## 9. Direction update (after mockup review)
+
+Mockups A–C were rejected as too generic. New direction, **"The System"**:
+- Full-screen voxel 3D world (Three.js on web, expo-gl on Android). The user's own voxel avatar stands above a night city.
+- Anime dark-future mood. Palette: white, black, dark purple, light blue. Light blue = you / light; dark purple = corruption (phone time).
+- Stats: DEEN · BODY · MIND · CRAFT · REST, each with a level and XP. Daily Quests drive the day.
+- The Urge screen becomes **Intrusion** (glitch, breath delay, **SEAL IT**). Salah become **Gates**, rehab is the **Body quest**, the night check-in is **Log out**.
+- Prototype: `mockups/d-system.html`.
