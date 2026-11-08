@@ -187,3 +187,56 @@ Mockups A–C were rejected as too generic. New direction, **"The System"**:
 - **Work:** never Sealed; opens in scheduled work windows (default 13:00–13:20 and 18:00–18:20); tracked separately from Corruption. Example: **Meta Business Suite** for the academy's Instagram DMs, which keeps business replies off the Instagram feed.
 - **Always open:** Phone, Messages, Maps, Quran, Banking.
 - **Android later:** block only Instagram Reels/Explore while allowing DMs, via accessibility view detection. This is fragile across Instagram updates, so treat it as an optional extra and keep Meta Business Suite as the main solution.
+
+## 12. Progression v2: levels, points, dreams, records (2026-11-08)
+
+**Why:** a detox app that only punishes gets opened for a week. Yami has to show *what you are building*, not only what you avoided. Every rule below is plain math on saved history (no AI).
+
+### 12.1 Player level and rank
+- **Player level = sum of enabled stat levels** (the prototype already shows LV 35 = 7+3+9+11+5).
+- **Rank** by player level: **E** < 15 · **D** 15–29 · **C** 30–49 · **B** 50–79 · **A** 80–119 · **S** 120+. A rank change gets its own moment on the Judgment screen (rank up and rank down).
+- **Titles** unlock from records (12.4) and Dreams achieved (12.3). The player picks one active title in Protocol.
+
+### 12.2 Shards (points you spend)
+- XP measures growth; **Shards** are the currency. Each cleared quest pays `floor(xpDelta / 10)` Shards (late reports pay half). Misses cost no Shards: XP and Honor already carry the penalty.
+- **Reward Shop:** the player writes their own real-life rewards with a price (examples: "New basketball shoes · 600", "Cinema night · 250"). Claiming one deducts Shards and logs the claim. There is no rule against any reward; the player sets the prices.
+- A Dream milestone pays **+20 Shards**; a Dream achieved pays **+100**.
+
+### 12.3 Dreams (long-term goals) and milestones
+- A **Dream** = `{ id, title, why, stat, milestones[], questIds[], createdAt, achievedAt? }`. Examples: "Athletic again" (BODY), "Ship 3 games" (CRAFT), "Pass Perio" (MIND), "Pray every salah on time for 40 days" (DEEN).
+- A **milestone** = `{ id, title, doneAt? }`. The player ticks it off (with a confirm step); it pays **+100 XP** to the Dream's stat and +20 Shards, and adds an entry to the record log.
+- **Dream progress** = done milestones / total. All done → **DREAM ACHIEVED**: +100 Shards, a title unlock ("The one who <title>" or a custom title), and a permanent entry in the Hall.
+- Quests can link to a Dream. Linked quests show the Dream name under the quest title, so daily work points at the long goal.
+- At most **3 active Dreams**; the rest wait in a "Later" list. Focus beats a long wishlist.
+
+### 12.4 History, streak and records
+- At each Judgment, append a **DaySummary** `{ dayKey, usedMin, capMin, cleared, late, confessed, unreported, xpGained, xpLost, shards, salahOnTime, energy?, held }` to `history`.
+- A day **holds** when cleared + late ≥ 60% of the judged quests and `usedMin ≤ capMin + reserveMin`.
+- **Streak (never miss twice):** each held day adds 1. One failed day **bends** the streak (it stays, marked bent); a second failed day in a row **breaks** it to 0. Best streak is saved.
+- **Records** are deterministic and checked after each Judgment; each unlocks once, with its date:
+
+| Record | Rule |
+|---|---|
+| First Light | first cleared quest |
+| Seven Unbroken | streak reaches 7 |
+| Under the Cap | 7 judged days in a row with `usedMin ≤ capMin` |
+| Five Gates | all 5 salah on time, 7 days in a row |
+| Iron Knees | 100 rehab sets total |
+| Honest Blade | 10 confessions total |
+| Day 66 | the 66-day arc completed |
+| Dreamer | first Dream achieved |
+
+### 12.5 Path screen (new tab)
+Tabs become **Status · Gates · Path · Quest · Log out**. Path shows, top to bottom:
+1. Player level, rank badge, active title, total XP, Shards.
+2. Active Dreams with milestone progress (tap to open, tick milestones).
+3. **This week:** phone minutes per day against the cap (bar chart), held days, XP gained vs lost, the weakest hour for urges.
+4. Streak (current, best, bent marker) and the 66-day grid built from `history`.
+5. Records (locked ones show their rule, so the player knows what to chase).
+6. Reward Shop entry.
+
+### 12.6 Usefulness bar (why it gets opened every day)
+- The daily loop stays under **60 seconds**: report quests (swipe), Log out (3 taps + hold), Judgment (read).
+- Something visibly grows every judged day: XP bars, the 66-day grid, Dream progress, Shards.
+- A weekly **Mirror** on the first Judgment of each week summarises the 7 days in one screen.
+- A missed check-in never resets anything silently; the next open offers a one-tap back-fill for yesterday.
