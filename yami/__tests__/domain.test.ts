@@ -42,10 +42,10 @@ describe('budget', () => {
 describe('xp', () => {
   const s = (level: number, xp: number) => ({ level, xp, enabled: true, name: 'BODY' });
   test('gain within level', () => expect(applyXp(s(3, 40), 20)).toEqual({ stat: s(3, 60), levelChange: 0 }));
-  test('level up with overflow', () => expect(applyXp(s(3, 90), 30)).toEqual({ stat: s(4, 20), levelChange: 1 }));
-  test('LEVEL LOST borrows from previous level', () => expect(applyXp(s(3, 18), -30)).toEqual({ stat: s(2, 88), levelChange: -1 }));
+  test('level up with overflow', () => expect(applyXp(s(3, 180), 30)).toEqual({ stat: s(4, 20), levelChange: 1 }));
+  test('LEVEL LOST borrows from previous level', () => expect(applyXp(s(3, 18), -30)).toEqual({ stat: s(2, 133), levelChange: -1 }));
   test('floor at level 1 xp 0', () => expect(applyXp(s(1, 10), -50)).toEqual({ stat: s(1, 0), levelChange: 0 }));
-  test('xpToNext curve', () => { expect(xpToNext(7)).toBe(100); expect(xpToNext(9)).toBe(124); });
+  test('xpToNext curve', () => { expect(xpToNext(1)).toBe(100); expect(xpToNext(2)).toBe(145); expect(xpToNext(20)).toBe(955); });
 });
 
 // ---------------- Task 5: judgment ----------------
@@ -126,9 +126,10 @@ describe('progression', () => {
     const p = newProfile();
     ([['deen', 7], ['body', 3], ['mind', 9], ['craft', 11], ['rest', 5]] as const).forEach(([k, l]) => { p.stats[k] = { ...p.stats[k], level: l }; });
     expect(playerLevel(p)).toBe(35);
-    expect(rankFor(35)).toBe('C');
+    expect(rankFor(35)).toBe('D');
     expect(rankFor(14)).toBe('E');
-    expect(rankFor(120)).toBe('S');
+    expect(rankFor(99)).toBe('A');
+    expect(rankFor(100)).toBe('S');
   });
   test('shards', () => {
     expect(shardsFor({ questId: 'x', verdict: 'cleared', xpDelta: 100, honorDelta: 0, stat: 'body' })).toBe(10);

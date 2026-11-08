@@ -8,13 +8,10 @@ export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export const playerLevel = (p: Profile) =>
   Object.values(p.stats).reduce((sum, s) => sum + (s.enabled ? s.level : 0), 0);
 
+/** Rank steps every 20 levels; S starts at LV 100, the Supreme Being. */
+export const RANK_AT: Record<Rank, number> = { E: 0, D: 20, C: 40, B: 60, A: 80, S: 100 };
 export function rankFor(level: number): Rank {
-  if (level >= 120) return 'S';
-  if (level >= 80) return 'A';
-  if (level >= 50) return 'B';
-  if (level >= 30) return 'C';
-  if (level >= 15) return 'D';
-  return 'E';
+  return (['S', 'A', 'B', 'C', 'D', 'E'] as Rank[]).find(r => level >= RANK_AT[r])!;
 }
 
 export function shardsFor(r: QuestResult): number {
@@ -76,6 +73,7 @@ const RECORD_RULES: Record<RecordId, (p: Profile) => boolean> = {
   honestBlade: p => p.history.reduce((a, h) => a + h.confessed, 0) >= 10,
   day66: p => p.history.length >= 66,
   dreamer: p => p.dreams.some(d => d.achievedAt),
+  supreme: p => playerLevel(p) >= 100,
 };
 
 export const RECORD_TEXT: Record<RecordId, { name: string; rule: string }> = {
@@ -87,13 +85,17 @@ export const RECORD_TEXT: Record<RecordId, { name: string; rule: string }> = {
   honestBlade: { name: 'Honest Blade', rule: '10 honest confessions' },
   day66: { name: 'Day 66', rule: 'Complete the 66-day arc' },
   dreamer: { name: 'Dreamer', rule: 'Achieve your first Dream' },
+  supreme: { name: 'Supreme Being', rule: 'Reach player LV 100' },
 };
 
 /** Newly unlocked records only. */
 export const checkRecords = (p: Profile): RecordId[] =>
   (Object.keys(RECORD_RULES) as RecordId[]).filter(id => p.records[id] === undefined && RECORD_RULES[id](p));
 
-export const unlock = (p: Profile, now: number): Profile => {
+/** Unlock new records and remember the best player level ever reached (best form). */
+export const unlock = (p0: Profile, now: number): Profile => {
+  const best = Math.max(p0.bestLevel, playerLevel(p0));
+  const p = best === p0.bestLevel ? p0 : { ...p0, bestLevel: best };
   const ids = checkRecords(p);
   if (!ids.length) return p;
   const records = { ...p.records };

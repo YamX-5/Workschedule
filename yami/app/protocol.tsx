@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { router } from 'expo-router';
 import { useYami, uid } from '@/src/data/store';
 import { STAT_IDS, type AppCategory, type Protocol, type Quest } from '@/src/domain/types';
@@ -20,6 +20,8 @@ export default function ProtocolScreen() {
   const [editing, setEditing] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<'reset' | 'fall' | null>(null);
   const [statMsg, setStatMsg] = useState('');
+  const [backup, setBackup] = useState('');
+  const [backupMsg, setBackupMsg] = useState('');
   const pr = p.protocol;
   const up = (patch: Partial<Protocol>) => st.updateProtocol(patch);
   const statName = (k: (typeof STAT_IDS)[number]) => p.stats[k].name;
@@ -128,6 +130,15 @@ export default function ProtocolScreen() {
       <Window title="Data" kana="記録">
         <View style={{ gap: space.s3 }}>
           <T style={{ fontSize: 13, color: colors.white3 }}>Scars: {p.scars} · Falls: {p.fallRecord.map(f => `day ${f.day} (${fmtDate(f.at)})`).join(', ') || 'none'}</T>
+          <Button small variant="seal" label="Export backup" onPress={() => {
+            Share.share({ message: JSON.stringify(p) }).catch(() => setBackupMsg('Sharing is not available here.'));
+          }} />
+          <T style={{ fontSize: 12, color: colors.white3 }}>Saves everything as text. Send it to yourself (WhatsApp, email) once a week.</T>
+          <Field label="Restore from backup" value={backup} onChangeText={t => { setBackup(t); setBackupMsg(''); }} placeholder="Paste backup text" multiline />
+          <Button small variant="ghost" label="Restore" disabled={!backup.trim()} onPress={() => {
+            setBackupMsg(st.importProfile(backup.trim()) ? 'Restored.' : 'That is not a Yami backup. Nothing changed.');
+          }} />
+          {backupMsg ? <T style={{ fontSize: 12, color: colors.blue }}>{backupMsg}</T> : null}
           <Button small variant="ghost" label="Replay intro" onPress={() => router.push('/onboarding')} />
           {confirm === 'fall'
             ? <Button small variant="danger" label="Confirm: fall to day 1" onPress={() => { st.triggerFall(); setConfirm(null); }} />

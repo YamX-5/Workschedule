@@ -65,5 +65,6 @@ export function newProfile(): Profile {
     records: {},
     streak: { current: 0, best: 0, bent: false },
     titles: ['The Protagonist'],
+    bestLevel: 5,
   };
 }

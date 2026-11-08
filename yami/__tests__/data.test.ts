@@ -73,6 +73,17 @@ describe('store', () => {
     S().upsertReward({ id: 'r', title: 'Cinema', cost: 250 });
     expect(S().claimReward('r')).toBe(false);
   });
+  test('backup round-trips and junk is refused', () => {
+    S().upsertReward({ id: 'r', title: 'Shoes', cost: 600 });
+    S().setPlayer({ name: 'Yaman' });
+    const json = JSON.stringify(S().profile);
+    S().reset();
+    expect(S().importProfile('not json')).toBe(false);
+    expect(S().importProfile('{"honor": 3}')).toBe(false);
+    expect(S().profile.name).toBe('Player');
+    expect(S().importProfile(json)).toBe(true);
+    expect(S().profile).toMatchObject({ name: 'Yaman', rewards: [{ id: 'r', title: 'Shoes', cost: 600 }] });
+  });
   test('todayKey before Fajr is yesterday', () => expect(todayKey(S().profile, new Date('2026-11-09T03:00:00'))).toBe('2026-11-08'));
 });
 

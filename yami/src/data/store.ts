@@ -56,6 +56,8 @@ interface YamiState {
   claimReward(id: string, now?: Date): boolean;
   triggerFall(now?: Date): void;
   reset(): void;
+  /** Replace the profile from a backup string. Returns false (and changes nothing) if it isn't a Yami backup. */
+  importProfile(json: string): boolean;
 }
 
 export const useYami = create<YamiState>()(
@@ -200,6 +202,16 @@ export const useYami = create<YamiState>()(
 
         triggerFall(now = new Date()) { patch(p => fall(p, now.getTime())); },
         reset() { set({ profile: newProfile(), lastJudgment: null }); },
+        importProfile(json) {
+          try {
+            const raw = JSON.parse(json);
+            if (!raw || raw.schemaVersion !== 1 || !Array.isArray(raw.quests)) return false;
+            set({ profile: migrate(raw), lastJudgment: null });
+            return true;
+          } catch {
+            return false;
+          }
+        },
       };
     },
     {

@@ -240,3 +240,11 @@ Tabs become **Status · Gates · Path · Quest · Log out**. Path shows, top to 
 - Something visibly grows every judged day: XP bars, the 66-day grid, Dream progress, Shards.
 - A weekly **Mirror** on the first Judgment of each week summarises the 7 days in one screen.
 - A missed check-in never resets anything silently; the next open offers a one-tap back-fill for yesterday.
+
+### 12.7 Character forms (2026-11-08)
+- The avatar upgrades every **10 player levels**: Dormant → Awakened (10) → Initiate (20) → Seeker (30) → Vanguard (40) → Warden (50) → Ascendant (60) → Sovereign (70) → Paragon (80) → Transcendent (90) → **Supreme Being (100)**. Each form adds one visible upgrade (glowing eyes, chest core, hood, armour, halo, orbiting shards, crown, wings, aura, body of light).
+- Form follows the **current** level, so slipping loses the form; `bestLevel` keeps the best form on record ("Win it back").
+- **Ranks re-aligned** to steps of 20: E 0 · D 20 · C 40 · B 60 · A 80 · **S 100 = Supreme**. New record: Supreme Being.
+- **XP curve retuned** to `xpToNext(L) = 100 + 45 × (L − 1)` so LV 100 takes about **6 months of perfect days** and **7–12 months** clearing 3 days in 4 (pace test in `yami/__tests__/forms.test.ts`).
+- Art: SVG placeholder in `yami/src/ui/Avatar.tsx`; Plan 3 replaces it with **Blender renders** (one PNG per form, rendered offline, no 3D engine on the phone).
+- Backup: Protocol → Data → Export backup (share sheet) / Restore (paste). Real data is local to the phone until accounts exist.

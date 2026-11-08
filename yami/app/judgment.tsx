@@ -5,6 +5,8 @@ import { useYami } from '@/src/data/store';
 import { RECORD_TEXT, playerLevel, rankFor } from '@/src/domain/progress';
 import type { StatId } from '@/src/domain/types';
 import { VerdictList } from '@/src/features/VerdictList';
+import { formFor } from '@/src/domain/forms';
+import { Avatar } from '@/src/ui/Avatar';
 import { ModalScreen } from '@/src/ui/ModalScreen';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
@@ -28,6 +30,7 @@ export default function Judgment() {
   const lvl = playerLevel(p);
   const rankBefore = rankFor(out.levelBefore ?? lvl), rankNow = rankFor(lvl);
   const s = out.summary;
+  const formBefore = formFor(out.levelBefore ?? lvl), formNow = formFor(lvl);
 
   return (
     <ModalScreen title="Judgment at Fajr" kana="審判">
@@ -48,6 +51,18 @@ export default function Judgment() {
             </T>
           ))}
           {rankBefore !== rankNow && <T v="display" style={{ fontSize: 18, marginTop: space.s2, color: lost ? colors.white : colors.purple }}>Rank {rankBefore} → {rankNow}</T>}
+        </Window>
+      )}
+
+      {formBefore.tier !== formNow.tier && (
+        <Window title={formNow.tier > formBefore.tier ? 'Form upgrade' : 'Form lost'} tone={formNow.tier > formBefore.tier ? 'white' : 'glass'}>
+          <View style={{ alignItems: 'center', gap: space.s2 }}>
+            <Avatar tier={formNow.tier} size={140} />
+            <T v="display" style={{ fontSize: 18, color: formNow.tier > formBefore.tier ? colors.ink : colors.white }}>{formNow.name}</T>
+            <T style={{ fontSize: 13, color: formNow.tier > formBefore.tier ? colors.ink2 : colors.white3, textAlign: 'center' }}>
+              {formNow.tier > formBefore.tier ? formNow.upgrade : `Dropped from ${formBefore.name}. Climb back to LV ${formBefore.minLevel}.`}
+            </T>
+          </View>
         </Window>
       )}
 

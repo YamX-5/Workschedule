@@ -80,7 +80,7 @@ export interface DaySummary {
 
 export type RecordId =
   | 'firstLight' | 'sevenUnbroken' | 'underCap' | 'fiveGates'
-  | 'ironKnees' | 'honestBlade' | 'day66' | 'dreamer';
+  | 'ironKnees' | 'honestBlade' | 'day66' | 'dreamer' | 'supreme';
 
 export interface Streak { current: number; best: number; bent: boolean }
 
@@ -126,4 +126,6 @@ export interface Profile {
   records: Partial<Record<RecordId, number>>;
   streak: Streak;
   titles: string[];
+  /** Highest player level ever reached; the best form stays on record even if levels drop. */
+  bestLevel: number;
 }
