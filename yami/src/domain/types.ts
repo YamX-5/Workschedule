@@ -92,7 +92,11 @@ export interface Usage {
   reserveReasons: string[];
   earnedMin: number;
   energy?: number;
+  /** Fajr..Isha gate marks for this day. */
+  gates?: GateMark[];
 }
+
+export type GateMark = 'pending' | 'ontime' | 'late' | 'miss';
 
 export interface Profile {
   schemaVersion: 1;

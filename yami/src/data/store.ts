@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Dream, Profile, Protocol, Quest, ReportKind, Reward, StatId } from '../domain/types';
+import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, ReportKind, Reward, StatId } from '../domain/types';
 import { newProfile } from '../domain/defaults';
 import { addDays, atOnDay, dayKey } from '../domain/time';
 import { judgeDay } from '../domain/judgment';
 import { fall } from '../domain/fall';
-import { addDream as addDreamRule, claimReward as claimRule, completeMilestone as milestoneRule } from '../domain/progress';
+import { addDream as addDreamRule, claimReward as claimRule, completeMilestone as milestoneRule, playerLevel } from '../domain/progress';
 import { prayerTimes } from '../prayer/prayer';
 import { migrate } from './migrate';
 
@@ -29,7 +29,7 @@ function rollUsage(p: Profile, key: string): Profile {
   };
 }
 
-export type JudgmentOutcome = ReturnType<typeof judgeDay>;
+export type JudgmentOutcome = ReturnType<typeof judgeDay> & { newRecords?: RecordId[]; levelBefore?: number };
 
 interface YamiState {
   profile: Profile;
@@ -39,6 +39,7 @@ interface YamiState {
   earnMinutes(min: number, now?: Date): number;
   openReserve(reason: string, now?: Date): void;
   setEnergy(energy: number, now?: Date): void;
+  cycleGate(i: number, now?: Date): void;
   runJudgment(now?: Date): JudgmentOutcome | null;
   updateProtocol(patch: Partial<Protocol>): void;
   upsertQuest(q: Quest): void;
@@ -116,6 +117,19 @@ export const useYami = create<YamiState>()(
           });
         },
 
+        /** Tap a gate: pending -> on time -> late -> missed -> pending. Keeps the Salah quest report in sync. */
+        cycleGate(i, now = new Date()) {
+          const ORDER: GateMark[] = ['pending', 'ontime', 'late', 'miss'];
+          const p0 = get().profile;
+          const p = rollUsage(p0, todayKey(p0, now));
+          const gates = [...(p.usage.gates ?? Array<GateMark>(5).fill('pending'))];
+          gates[i] = ORDER[(ORDER.indexOf(gates[i]) + 1) % ORDER.length];
+          set({ profile: { ...p, usage: { ...p.usage, gates } } });
+          const prayed = gates.filter(g => g === 'ontime' || g === 'late').length;
+          const marked = gates.filter(g => g !== 'pending').length;
+          if (marked) get().report('salah', prayed ? 'done' : 'didnt', prayed, now);
+        },
+
         /** Judges every unjudged day before today (at most 3 back; older gaps close without penalty). */
         runJudgment(now = new Date()) {
           let p = get().profile;
@@ -137,6 +151,12 @@ export const useYami = create<YamiState>()(
               : r;
           }
           p = rollUsage(p, today);
+          const before = get().profile;
+          if (out) out = {
+            ...out,
+            newRecords: (Object.keys(p.records) as RecordId[]).filter(k => before.records[k] === undefined),
+            levelBefore: playerLevel(before),
+          };
           set({ profile: p, lastJudgment: out });
           return out;
         },
