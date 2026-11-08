@@ -1,5 +1,6 @@
 <title>Yami System</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Michroma&family=DotGothic16&family=Noto+Kufi+Arabic:wght@600;700&display=swap">
 <style>
 /* =====================================================================
@@ -116,7 +117,10 @@ svg{display:block}
 .dayl b{font:400 12px/1 var(--fd);color:var(--w);letter-spacing:.04em}
 .dprog{width:52px;height:4px;background:rgba(242,240,247,.16);position:relative;overflow:hidden}
 .dprog i{position:absolute;inset:0;transform-origin:left;transform:scaleX(.18);background:var(--b)}
-.hud-r{display:flex;gap:var(--s2);align-items:center}
+.hud-r{display:flex;gap:var(--s2);align-items:center;flex:none}
+/* phone fit: the HUD must never push buttons off-screen */
+@media (max-width:440px){.honb small{display:none}.hud-r{gap:6px}.brand{gap:var(--s2)}}
+@media (max-width:360px){#btn-sound{display:none}}
 .ibtn{width:40px;height:40px;display:grid;place-items:center;border:1px solid rgba(242,240,247,.24);background:rgba(11,9,21,.6);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--w2);
   transition:transform 160ms var(--ease-out),border-color 200ms ease,color 200ms ease}
@@ -133,6 +137,12 @@ body.intr #rail *,body.intr #gateLayer *{pointer-events:none!important}
 .screen{position:absolute;inset:0;visibility:hidden;display:flex;overflow:hidden;overflow:clip;flex-direction:column;
   padding:calc(var(--st) + var(--hud)) var(--gr) var(--navspace) var(--gl)}
 .screen.on{visibility:visible}
+/* short phones: Body and Log out scroll instead of hiding content behind the tab bar */
+#scr-body.on,#scr-logout.on{overflow-y:auto;pointer-events:auto;overscroll-behavior:contain;touch-action:pan-y}
+#scr-body>.win,#scr-logout>.win{flex:none}
+@media (max-height:740px){#scr-gates .legend{display:none}}
+@media (max-width:380px){.brow{grid-template-columns:108px minmax(0,1fr);gap:var(--s3)}.timer{width:108px;height:108px}.timer .tnum b{font-size:36px}}
+.bcorr-l{gap:var(--s2)}
 .screen.on .win,.screen.on #sheet,.screen.on .tap{pointer-events:auto}
 .grow{flex:1;min-height:0}
 
@@ -190,7 +200,9 @@ body.intr #rail *,body.intr #gateLayer *{pointer-events:none!important}
 .qi svg{width:22px;height:22px}
 .qm{min-width:0;display:flex;flex-direction:column;gap:4px}
 .qt{font:600 15px/1.25 var(--ft);color:var(--ink);text-wrap:balance;transition:color 300ms ease}
-.qs{display:flex;align-items:center;gap:6px;min-width:0}
+.qs{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-width:0}
+@media (max-width:380px){.cs-v>span:last-child{display:none}.cs-l{letter-spacing:.08em}}
+.wk{white-space:nowrap}
 .qx,.qflag,.qn{flex:none;font:700 11px/1 var(--ft);letter-spacing:.08em;padding:4px 6px;white-space:nowrap}
 .qx{color:var(--w);background:var(--p)}
 .qflag{color:var(--w);background:var(--k)}
@@ -239,6 +251,7 @@ body.intr #rail *,body.intr #gateLayer *{pointer-events:none!important}
 
 /* ---------------- stats / radar ---------------- */
 .stats{display:grid;grid-template-columns:168px minmax(0,1fr);gap:var(--s4);align-items:center}
+@media (max-width:380px){.stats{grid-template-columns:minmax(0,1fr)}.stats>:first-child{justify-self:center}}
 #radar{width:168px;height:176px;overflow:visible}
 #radar .grid{fill:none;stroke:rgba(242,240,247,.14);stroke-width:1}
 #radar .axis{stroke:rgba(242,240,247,.14);stroke-width:1}
@@ -3516,6 +3529,9 @@ var GLW=66,GLGAP=4;
 function placeGateLabels(){
   var T=W.T,cam=W.camera,pts=[],v=new T.Vector3();
   W.gates.forEach(function(g,i){v.set(0,0,.5);g.localToWorld(v);v.project(cam);pts.push({i:i,ax:(v.x+1)/2*innerWidth,ay:(1-v.y)/2*innerHeight})});
+  var room=(isDesk()?innerWidth-440:innerWidth)-32;
+  GLW=Math.max(52,Math.min(66,Math.floor((room-4*GLGAP)/5)));   /* 5 labels always fit side by side */
+  pts.forEach(function(p){document.getElementById('gate-'+p.i).style.width=GLW+'px'});
   var xs=pts.map(function(p){return p.ax}),min=GLW/2+(isDesk()?24:16),max=(isDesk()?innerWidth-440:innerWidth)-GLW/2-16;
   for(var it=0;it<8;it++){for(var i=1;i<xs.length;i++){var need=GLW+GLGAP-(xs[i]-xs[i-1]);if(need>0){xs[i-1]-=need/2;xs[i]+=need/2}}
     for(i=0;i<xs.length;i++)xs[i]=clamp(xs[i],min,max)}
