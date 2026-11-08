@@ -1,56 +1,60 @@
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Michroma_400Regular } from '@expo-google-fonts/michroma';
+import { ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold } from '@expo-google-fonts/chakra-petch';
 import 'react-native-reanimated';
+import { useYami } from '@/src/data/store';
+import { syncReminders } from '@/src/notify/reminders';
+import { colors } from '@/src/ui/tokens';
 
-import { useColorScheme } from '@/components/useColorScheme';
+export { ErrorBoundary } from 'expo-router';
+export const unstable_settings = { anchor: '(tabs)' };
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  anchor: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  const [fonts] = useFonts({ Michroma_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
+  const [hydrated, setHydrated] = useState(useYami.persist.hasHydrated());
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    const unsub = useYami.persist.onFinishHydration(() => setHydrated(true));
+    if (useYami.persist.hasHydrated()) setHydrated(true); // finished before we subscribed
+    return unsub;
+  }, []);
+  useEffect(() => { if (fonts && hydrated) SplashScreen.hideAsync().catch(() => {}); }, [fonts, hydrated]);
 
-  if (!loaded) {
-    return null;
-  }
+  // Onboarding gate + Judgment at Fajr on open and on every return to the foreground.
+  useEffect(() => {
+    if (!fonts || !hydrated) return;
+    const check = () => {
+      const s = useYami.getState();
+      if (!s.profile.onboarded) { router.replace('/onboarding'); return; }
+      const out = s.runJudgment();
+      if (out && out.results.length) router.push('/judgment');
+      syncReminders(useYami.getState().profile);
+    };
+    const t = setTimeout(check, 0);
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') check(); });
+    return () => { clearTimeout(t); sub.remove(); };
+  }, [fonts, hydrated]);
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  if (!fonts || !hydrated) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.black }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.black }, animation: 'fade' }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="judgment" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="lock" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="protocol" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="dream" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="shop" options={{ presentation: 'modal' }} />
       </Stack>
-    </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
