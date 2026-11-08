@@ -168,3 +168,16 @@ Mockups A–C were rejected as too generic. New direction, **"The System"**:
 **Later:** enemies (Corruption spawns Shadows tied to your weak hours), summons (allies unlocked by streaks), Blender-made characters and assets.
 
 **Paid later (design for it now):** keep all player state in one serialisable profile so it can move to an account and cloud sync. Possible premium candidates: custom protocols and presets, extra avatars and summons, deeper analytics, accountability party. The core detox loop stays free.
+
+## 11. Limit → Reserve → Sealed (the app lock)
+
+1. **Cap (default 2h)** on watched apps only. Friction escalates as it fills (5 s → 15 s → 30 s).
+2. **Necessity Reserve (default 30 min).** After the cap, watched apps open only by stating a reason (logged). The Reserve drains.
+3. **Sealed until Fajr.** When the Reserve is empty, watched apps are locked until the day resets at Fajr. Calls, messages, maps and Quran are never blocked.
+4. **The only escape is uninstalling.** Local data is wiped, which loses progress. Android: set `allowBackup=false` so a reinstall can't restore it.
+
+**Platform reality**
+- **Android:** a foreground service polls `UsageStatsManager`, plus an overlay (`SYSTEM_ALERT_WINDOW`) or an AccessibilityService to detect and cover watched apps. Google Play requires a prominent disclosure and a declaration for accessibility use. Optional Device Admin adds friction to uninstalling.
+- **iOS:** apps cannot draw over other apps. Use the Screen Time API (FamilyControls + ManagedSettings + DeviceActivity) with a custom Shield (ShieldConfiguration extension) for the Yami-branded lock. This needs Apple's Family Controls entitlement approval. Uninstalling removes the shields, which matches the "only escape is uninstall" rule.
+- **Anti-cheat:** never trust the device clock alone. Use elapsed time since boot plus network time when online.
+- **Open question for the user:** what uninstalling means (full wipe vs a roguelike "Fall" that keeps an Honor record). Undecided.
