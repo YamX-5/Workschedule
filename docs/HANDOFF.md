@@ -36,7 +36,8 @@ and add the Emil Kowalski skills from https://github.com/emilkowalski/skills (fo
 - [x] Spec v1, sleep added, renamed to Yami, System direction
 - [x] Prototype v2: studio polish (new avatar, bloom, bottom sheet, radar stats, cinematic cameras)
 - [x] Prototype v3: Protocol settings, Judgment (honesty beats perfection), HONOR, level loss, debuffs, reminders, onboarding, Limit→Reserve→Sealed lock, Work apps, FALL, DEMO panel
-- [ ] Implementation plan for the real app (Expo React Native for Android + PWA, with a native module for screen time and the app intercept)
+- [x] Plan 1 written: `docs/superpowers/plans/2026-11-08-yami-core.md` (Expo app, domain, screens, simulate-mode lock)
+- [ ] Execute Plan 1 · then Plan 2 (Android Shield) · Plan 3 (3D World)
 - [ ] Blender assets pass
 - [ ] Enemies (Shadows) and summons
 - [ ] Paid version: accounts, cloud sync, premium (keep the core detox loop free)
