@@ -35,7 +35,7 @@ and add the Emil Kowalski skills from https://github.com/emilkowalski/skills (fo
 - [x] Research (one sec PNAS study, never-miss-twice, 66-day habit arc, why blockers fail)
 - [x] Spec v1, sleep added, renamed to Yami, System direction
 - [x] Prototype v2: studio polish (new avatar, bloom, bottom sheet, radar stats, cinematic cameras)
-- [ ] Prototype v3: **Protocol settings + Judgment system (honesty beats perfection), HONOR, level loss, debuffs, reminders, onboarding** (in progress)
+- [x] Prototype v3: Protocol settings, Judgment (honesty beats perfection), HONOR, level loss, debuffs, reminders, onboarding, Limit→Reserve→Sealed lock, Work apps, FALL, DEMO panel
 - [ ] Implementation plan for the real app (Expo React Native for Android + PWA, with a native module for screen time and the app intercept)
 - [ ] Blender assets pass
 - [ ] Enemies (Shadows) and summons
