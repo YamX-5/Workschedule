@@ -8,6 +8,8 @@ Date: 2026-11-08 · Status: draft, awaiting review
 One person, one goal: take control back from the phone and put the time into the
 things that matter.
 
+- **Sleep (the foundation):** 7+ hours, asleep by 23:00, up for Fajr. Everything else
+  (tendon repair, memorising for dentistry, focus, impulse control) depends on it.
 - **Phone:** 2 hours a day, maximum.
 - **Deen:** pray all 5 salah, ideally on time.
 - **Body:** rehab the knees (patellar tendinopathy; doctor's instruction is to
@@ -35,6 +37,7 @@ daily because it costs under 60 seconds a day to use.
 
 | Pillar | Daily non-negotiable | Tracked |
 |---|---|---|
+| **Sleep (foundation)** | Asleep by target, up for Fajr | Bedtime, wake time, hours, quality 1–5, phone use after wind-down |
 | Deen | 5 salah | Each prayer: on time / late / missed (qada owed) |
 | Body | Knee rehab routine | Sets done, hold time, knee pain 0–10 before/after; basketball sessions logged separately |
 | Company | One focus block | Focus minutes |
@@ -73,6 +76,12 @@ daily because it costs under 60 seconds a day to use.
 13. **Shield status.** ON/OFF is always visible. The app alerts if usage access or
     accessibility permission is revoked.
 
+14. **Sleep & Wind-down.** The last block of the day is Isha → Sleep. Wind-down starts
+    at a set time (default 22:30); watched apps hard-lock until the Fajr alarm. Sleep
+    is logged at the morning open (one tap, prefilled from the last phone use at night
+    and the first in the morning on Android). Setup prompts "phone charges outside the
+    bedroom". The Weekly Mirror links late-night phone use to lost sleep.
+
 **Out of V1:** accountability buddy, AI coach, cloud sync, iOS.
 
 ## 5. Platform & architecture
@@ -96,7 +105,7 @@ daily because it costs under 60 seconds a day to use.
 
 | Unit | Job | Depends on |
 |---|---|---|
-| `domain/` | Pure logic: budget, friction level, streak (never miss twice), earn-minutes cap, salah state | nothing (fully unit-tested) |
+| `domain/` | Pure logic: budget, friction level, sleep window, streak (never miss twice), earn-minutes cap, salah state | nothing (fully unit-tested) |
 | `data/` | Repositories over SQLite / IndexedDB | domain types |
 | `native/usage` | Screen time and the foreground-app hook, plus a web stub | Android APIs |
 | `prayer/` | Prayer times and block computation | `adhan` |
