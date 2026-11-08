@@ -42,5 +42,4 @@ and add the Emil Kowalski skills from https://github.com/emilkowalski/skills (fo
 - [ ] Paid version: accounts, cloud sync, premium (keep the core detox loop free)
 
 ## Known issues
-- **GitHub push was blocked (403)** in the cloud session. Reconnect at https://claude.ai/connect-github and install the Claude GitHub App on `YamX-5/Workschedule`, then push branch `claude/dopamine-detox-app-caiyhy`.
 - The avatar body is still boxy. Blender will fix it.
