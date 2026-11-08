@@ -147,3 +147,24 @@ Mockups A–C were rejected as too generic. New direction, **"The System"**:
 - Stats: DEEN · BODY · MIND · CRAFT · REST, each with a level and XP. Daily Quests drive the day.
 - The Urge screen becomes **Intrusion** (glitch, breath delay, **SEAL IT**). Salah become **Gates**, rehab is the **Body quest**, the night check-in is **Log out**.
 - Prototype: `mockups/d-system.html`.
+
+## 10. Player-configurable Protocol + Judgment system (v3)
+
+**Protocol (settings):** the player sets their own phone cap, wind-down, sleep and wake times, renames and toggles stats, edits quests (title, stat, XP, type check/count/timer, schedule, report deadline), picks a judgment preset (Mercy / Balanced / Ruthless), and chooses watched apps and the prayer method.
+
+**Judgment: honesty beats perfection.** Every quest ends the day in one state:
+
+| State | Meaning | Balanced outcome |
+|---|---|---|
+| CLEARED | reported done | full XP |
+| CONFESSED | reported honestly as not done | 0 XP lost, +2 Honor |
+| LATE REPORT | done, reported inside the grace window (until Fajr) | 50% XP |
+| UNREPORTED | nothing reported | −1.5× reward XP, corruption spike, −5 Honor |
+
+- Levels can drop. Missing the same quest twice in a row applies a debuff.
+- Reminders fire before the deadline. A "did you do it?" nudge goes out when activity suggests the quest was done but it wasn't reported.
+- **Judgment at Fajr** is the daily results screen.
+
+**Later:** enemies (Corruption spawns Shadows tied to your weak hours), summons (allies unlocked by streaks), Blender-made characters and assets.
+
+**Paid later (design for it now):** keep all player state in one serialisable profile so it can move to an account and cloud sync. Possible premium candidates: custom protocols and presets, extra avatars and summons, deeper analytics, accountability party. The core detox loop stays free.
