@@ -55,6 +55,7 @@ export function newProfile(): Profile {
     fallRecord: [],
     scars: 0,
     onboarded: false,
+    startKey: '',
     protocol: defaultProtocol(),
     shards: 0,
     dreams: [],

@@ -110,6 +110,8 @@ export interface Profile {
   fallRecord: { day: number; at: number }[];
   scars: number;
   onboarded: boolean;
+  /** dayKey of the first day played; days before it are never judged. '' until first open. */
+  startKey: string;
   protocol: Protocol;
   // progression (spec §12)
   shards: number;
