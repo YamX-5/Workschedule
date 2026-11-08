@@ -180,4 +180,10 @@ Mockups A–C were rejected as too generic. New direction, **"The System"**:
 - **Android:** a foreground service polls `UsageStatsManager`, plus an overlay (`SYSTEM_ALERT_WINDOW`) or an AccessibilityService to detect and cover watched apps. Google Play requires a prominent disclosure and a declaration for accessibility use. Optional Device Admin adds friction to uninstalling.
 - **iOS:** apps cannot draw over other apps. Use the Screen Time API (FamilyControls + ManagedSettings + DeviceActivity) with a custom Shield (ShieldConfiguration extension) for the Yami-branded lock. This needs Apple's Family Controls entitlement approval. Uninstalling removes the shields, which matches the "only escape is uninstall" rule.
 - **Anti-cheat:** never trust the device clock alone. Use elapsed time since boot plus network time when online.
-- **Open question for the user:** what uninstalling means (full wipe vs a roguelike "Fall" that keeps an Honor record). Undecided.
+- **Decided: FALL.** Uninstalling resets level, streak and stats to Day 1. Scars and the Honor record stay (cloud-held once accounts exist; until then a reinstall starts fresh with a "fallen" marker if one can be detected).
+
+**App categories (decided)**
+- **Watched:** counts toward the cap, gets Intrusion, can be Sealed (Instagram, TikTok, YouTube, Snapchat, X).
+- **Work:** never Sealed; opens in scheduled work windows (default 13:00–13:20 and 18:00–18:20); tracked separately from Corruption. Example: **Meta Business Suite** for the academy's Instagram DMs, which keeps business replies off the Instagram feed.
+- **Always open:** Phone, Messages, Maps, Quran, Banking.
+- **Android later:** block only Instagram Reels/Explore while allowing DMs, via accessibility view detection. This is fragile across Instagram updates, so treat it as an optional extra and keep Meta Business Suite as the main solution.
