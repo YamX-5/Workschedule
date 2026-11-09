@@ -1,4 +1,4 @@
-// Progression v2 (spec §12): player level, rank, shards, streak, records, dreams, reward shop.
+﻿// Progression v2 (spec §12): player level, rank, shards, streak, records, dreams, reward shop.
 import type { DaySummary, Dream, Profile, RecordId, Streak } from './types';
 import type { QuestResult } from './judgment';
 import { applyXp } from './xp';
@@ -8,7 +8,7 @@ export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export const playerLevel = (p: Profile) =>
   Object.values(p.stats).reduce((sum, s) => sum + (s.enabled ? s.level : 0), 0);
 
-/** Rank steps every 20 levels; S starts at LV 100, the Supreme Being. */
+/** Rank steps every 20 levels; S starts at LV 100, The Chosen One. */
 export const RANK_AT: Record<Rank, number> = { E: 0, D: 20, C: 40, B: 60, A: 80, S: 100 };
 export function rankFor(level: number): Rank {
   return (['S', 'A', 'B', 'C', 'D', 'E'] as Rank[]).find(r => level >= RANK_AT[r])!;
@@ -85,7 +85,7 @@ export const RECORD_TEXT: Record<RecordId, { name: string; rule: string }> = {
   honestBlade: { name: 'Honest Blade', rule: '10 honest confessions' },
   day66: { name: 'Day 66', rule: 'Complete the 66-day arc' },
   dreamer: { name: 'Dreamer', rule: 'Achieve your first Dream' },
-  supreme: { name: 'Supreme Being', rule: 'Reach player LV 100' },
+  supreme: { name: 'The Chosen One', rule: 'Reach player LV 100' },
 };
 
 /** Newly unlocked records only. */

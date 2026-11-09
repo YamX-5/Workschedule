@@ -1,4 +1,4 @@
-import { newProfile } from '../src/domain/defaults';
+﻿import { newProfile } from '../src/domain/defaults';
 import { judgeDay } from '../src/domain/judgment';
 import { addDays } from '../src/domain/time';
 import { playerLevel } from '../src/domain/progress';
@@ -10,8 +10,8 @@ test('a form every 10 levels, Supreme at 100', () => {
   expect(formFor(5).name).toBe('Dormant');
   expect(formFor(10).name).toBe('Awakened');
   expect(formFor(59).tier).toBe(5);
-  expect(formFor(100).name).toBe('Supreme Being');
-  expect(formFor(140).name).toBe('Supreme Being');
+  expect(formFor(100).name).toBe('The Chosen One');
+  expect(formFor(140).name).toBe('The Chosen One');
   expect(nextForm(35)?.minLevel).toBe(40);
   expect(nextForm(100)).toBeNull();
 });
