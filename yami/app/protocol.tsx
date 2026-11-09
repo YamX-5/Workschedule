@@ -21,7 +21,7 @@ export default function ProtocolScreen() {
   const p = useYami(s => s.profile);
   const st = useYami.getState();
   const [editing, setEditing] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<'reset' | 'fall' | null>(null);
+  const [confirm, setConfirm] = useState<'reset' | 'fall' | 'restart' | null>(null);
   const [statMsg, setStatMsg] = useState('');
   const [backup, setBackup] = useState('');
   const [backupMsg, setBackupMsg] = useState('');
@@ -152,6 +152,10 @@ export default function ProtocolScreen() {
           {confirm === 'fall'
             ? <Button small variant="danger" label="Confirm: fall to day 1" onPress={() => { st.triggerFall(); setConfirm(null); }} />
             : <Button small variant="ghost" label="Simulate a Fall" onPress={() => setConfirm('fall')} />}
+          {confirm === 'restart'
+            ? <Button small variant="danger" label="Confirm: back to LV 1, keep my setup" onPress={() => { st.restartProgress(); setConfirm(null); }} />
+            : <Button small variant="ghost" label="Restart progress" onPress={() => setConfirm('restart')} />}
+          <T style={{ fontSize: 12, color: colors.white3 }}>Restart puts you back at LV 1, Day 1, 0 Shards. Quests, dreams, to-dos and settings stay.</T>
           {confirm === 'reset'
             ? <Button small variant="danger" label="Confirm: erase everything" onPress={() => { st.reset(); setConfirm(null); router.replace('/onboarding'); }} />
             : <Button small variant="ghost" label="Reset all data" onPress={() => setConfirm('reset')} />}

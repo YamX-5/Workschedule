@@ -1,5 +1,6 @@
 import { newProfile } from '../domain/defaults';
 import { THEME_IDS, type Profile } from '../domain/types';
+import { sanitize } from '../domain/economy';
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -21,7 +22,7 @@ export function migrate(raw: unknown): Profile {
     const p = fill(newProfile(), raw);
     p.schemaVersion = 1;
     if (!THEME_IDS.includes(p.protocol.theme)) p.protocol.theme = 'darkness';
-    return p;
+    return sanitize(p);
   } catch {
     return newProfile();
   }

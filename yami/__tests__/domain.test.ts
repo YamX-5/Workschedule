@@ -55,23 +55,23 @@ const withReports = (reports: Report[], patch: Partial<Profile> = {}): Profile =
 const resultOf = (p: Profile, id: string) => judgeDay(p, D).results.find(r => r.questId === id)!;
 
 describe('judgment', () => {
-  test('cleared count quest', () => expect(resultOf(withReports([rep('rehab', 'done', 5)]), 'rehab')).toMatchObject({ xpDelta: 100, verdict: 'cleared' }));
+  test('cleared count quest', () => expect(resultOf(withReports([rep('rehab', 'done', 5)]), 'rehab')).toMatchObject({ xpDelta: 50, verdict: 'cleared' }));
   test('confessed, balanced', () => expect(resultOf(withReports([rep('perio', 'didnt', 0)]), 'perio')).toMatchObject({ xpDelta: 0, honorDelta: 2 }));
   test('confessed, ruthless', () => {
     const p = withReports([rep('perio', 'didnt', 0)]); p.protocol = { ...p.protocol, preset: 'ruthless' };
-    expect(resultOf(p, 'perio')).toMatchObject({ xpDelta: -6, honorDelta: 2 });
+    expect(resultOf(p, 'perio')).toMatchObject({ xpDelta: -9, honorDelta: 2 });
   });
-  test('late report', () => expect(resultOf(withReports([rep('perio', 'done', 1, true)]), 'perio')).toMatchObject({ xpDelta: 13, honorDelta: 0 }));
+  test('late report', () => expect(resultOf(withReports([rep('perio', 'done', 1, true)]), 'perio')).toMatchObject({ xpDelta: 18, honorDelta: 0 }));
   test('unreported, balanced', () => {
     const out = judgeDay(withReports([]), D);
-    expect(out.results.find(r => r.questId === 'rehab')).toMatchObject({ xpDelta: -30, honorDelta: -5 });
+    expect(out.results.find(r => r.questId === 'rehab')).toMatchObject({ xpDelta: -75, honorDelta: -5 });
     expect(out.profile.corruptionCarryMin).toBe(50); // 5 quests unreported x 10
   });
   test('mercy / ruthless unreported', () => {
     const m = withReports([]); m.protocol = { ...m.protocol, preset: 'mercy' };
     const r = withReports([]); r.protocol = { ...r.protocol, preset: 'ruthless' };
-    expect(resultOf(m, 'rehab').xpDelta).toBe(-20);
-    expect(resultOf(r, 'rehab').xpDelta).toBe(-40);
+    expect(resultOf(m, 'rehab').xpDelta).toBe(-50);
+    expect(resultOf(r, 'rehab').xpDelta).toBe(-100);
   });
   test('never miss twice', () => {
     const p = withReports([rep('rehab', 'didnt', 0, false, '2026-11-07')], { judgedDays: ['2026-11-07'] });
@@ -79,7 +79,7 @@ describe('judgment', () => {
     expect(out.debuffsAdded).toContain('body');
     expect(out.profile.debuffs).toContainEqual({ stat: 'body', dayKey: '2026-11-09' });
   });
-  test('Fractured', () => expect(resultOf(withReports([rep('rehab', 'done', 5)], { debuffs: [{ stat: 'body', dayKey: D }] }), 'rehab').xpDelta).toBe(80));
+  test('Fractured', () => expect(resultOf(withReports([rep('rehab', 'done', 5)], { debuffs: [{ stat: 'body', dayKey: D }] }), 'rehab').xpDelta).toBe(40)); // 50 x 0.8
   test('honor clamp', () => {
     const p = withReports([rep('perio', 'didnt', 0), rep('ship', 'didnt', 0), rep('salah', 'done', 5), rep('rehab', 'done', 5), rep('sleep', 'done')], { honor: 99 });
     expect(judgeDay(p, D).profile.honor).toBe(100);
@@ -165,23 +165,24 @@ describe('progression', () => {
     expect(out.history).toHaveLength(1);
     expect(out.history[0]).toMatchObject({ cleared: 4, confessed: 1, held: true, rehabSets: 5, salahOnTime: 5 });
     expect(out.streak.current).toBe(1);
-    expect(out.shards).toBe(7 + 10 + 2 + 3); // salah 75, rehab 100, perio 25, sleep 30
+    expect(out.shards).toBe(5 + 5 + 3 + 3); // salah 50, rehab 50, perio 35, sleep 35
     expect(out.records.firstLight).toBe(42);
   });
   const dream = { id: 'd1', title: 'Athletic again', why: 'Play without pain', stat: 'body' as const, createdAt: 0, active: true,
     milestones: [{ id: 'm1', title: 'Wall sit 5x45s pain-free' }, { id: 'm2', title: 'Full game, no pain' }] };
   test('milestone and dream achieved', () => {
     let p = addDream(newProfile(), dream) as Profile;
-    p = completeMilestone(p, 'd1', 'm1', 5);
+    const DAY = 86_400_000; // one milestone a day, never on the day the dream was made
+    p = completeMilestone(p, 'd1', 'm1', DAY);
     expect(p.stats.body).toMatchObject({ level: 2, xp: 0 });
     expect(p.shards).toBe(20);
     expect(p.dreams[0].achievedAt).toBeUndefined();
-    p = completeMilestone(p, 'd1', 'm2', 6);
-    expect(p.dreams[0].achievedAt).toBe(6);
+    p = completeMilestone(p, 'd1', 'm2', 2 * DAY);
+    expect(p.dreams[0].achievedAt).toBe(2 * DAY);
     expect(p.shards).toBe(140);
-    expect(p.records.dreamer).toBe(6);
+    expect(p.records.dreamer).toBe(2 * DAY);
     expect(p.titles).toContain('Athletic again');
-    expect(completeMilestone(p, 'd1', 'm2', 7)).toBe(p); // no double pay
+    expect(completeMilestone(p, 'd1', 'm2', 3 * DAY)).toBe(p); // no double pay
   });
   test('reward shop refuses when short', () => {
     const p = { ...newProfile(), shards: 100, rewards: [{ id: 'r', title: 'Shoes', cost: 600 }] };

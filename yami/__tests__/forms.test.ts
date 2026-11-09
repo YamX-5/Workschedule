@@ -1,4 +1,4 @@
-﻿import { newProfile } from '../src/domain/defaults';
+import { newProfile } from '../src/domain/defaults';
 import { judgeDay } from '../src/domain/judgment';
 import { addDays } from '../src/domain/time';
 import { playerLevel } from '../src/domain/progress';
@@ -34,10 +34,10 @@ function daysTo100(clearEvery: (day: number) => boolean): number {
   return Infinity;
 }
 
-test('pace: perfect days reach Supreme in about 6 months', () => {
+test('pace: perfect days with the default quests reach LV 100 in 6 to 9 months', () => {
   const d = daysTo100(() => true);
-  expect(d).toBeGreaterThanOrEqual(150);
-  expect(d).toBeLessThanOrEqual(220);
+  expect(d).toBeGreaterThanOrEqual(180);
+  expect(d).toBeLessThanOrEqual(270);
 });
 
 test('pace: clearing 3 days in 4 (honest misses) takes 7 to 12 months', () => {

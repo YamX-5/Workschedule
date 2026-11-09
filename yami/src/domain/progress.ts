@@ -140,10 +140,21 @@ export function addDream(p: Profile, d: Dream): Profile | 'too-many' {
   return { ...p, dreams: [...p.dreams, d] };
 }
 
+const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
+
+/** Why a milestone can't be confirmed right now, or null. Stops clicking a whole dream done in one sitting. */
+export function milestoneBlock(p: Profile, dreamId: string, now: number): string | null {
+  const dream = p.dreams.find(d => d.id === dreamId);
+  if (!dream) return 'Dream not found.';
+  if (sameDay(dream.createdAt, now)) return 'Milestones unlock from tomorrow. Real progress takes at least a day.';
+  if (p.dreams.some(d => d.milestones.some(m => m.doneAt && sameDay(m.doneAt, now)))) return 'One milestone a day. Come back tomorrow.';
+  return null;
+}
+
 export function completeMilestone(p: Profile, dreamId: string, milestoneId: string, now: number): Profile {
   const dream = p.dreams.find(d => d.id === dreamId);
   const ms = dream?.milestones.find(m => m.id === milestoneId);
-  if (!dream || !ms || ms.doneAt) return p;
+  if (!dream || !ms || ms.doneAt || milestoneBlock(p, dreamId, now)) return p;
   const milestones = dream.milestones.map(m => (m.id === milestoneId ? { ...m, doneAt: now } : m));
   const achieved = milestones.every(m => m.doneAt);
   const updated: Dream = { ...dream, milestones, ...(achieved ? { achievedAt: now, active: false } : {}) };

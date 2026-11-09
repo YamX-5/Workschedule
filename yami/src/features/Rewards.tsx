@@ -44,6 +44,7 @@ export function GainToast() {
       <T style={s.stat}>{gain.stat}</T>
       {gain.shards ? <T style={s.shards}>{gain.shards > 0 ? '+' : ''}{gain.shards} ◆</T> : null}
       {gain.levelUp && <T style={s.lvl}>LEVEL UP</T>}
+      {gain.capped && <T style={s.shards}>DAILY LIMIT</T>}
     </Animated.View>
   );
 }

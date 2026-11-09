@@ -28,11 +28,11 @@ export function defaultProtocol(): Protocol {
 
 export function seedQuests(): Quest[] {
   return [
-    { id: 'salah', title: 'Salah', stat: 'deen', xp: 15, type: 'count', target: 5, days: DAILY, deadline: '23:00' },
-    { id: 'rehab', title: 'Knee rehab', stat: 'body', xp: 20, type: 'count', target: 5, days: DAILY, deadline: '21:00' },
-    { id: 'perio', title: 'Perio ch.4', stat: 'mind', xp: 25, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
-    { id: 'ship', title: 'Ship academy landing page', stat: 'craft', xp: 40, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
-    { id: 'sleep', title: 'Asleep by 23:00', stat: 'rest', xp: 30, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
+    { id: 'salah', title: 'Salah', stat: 'deen', xp: 50, type: 'count', target: 5, days: DAILY, deadline: '23:00' },
+    { id: 'rehab', title: 'Knee rehab', stat: 'body', xp: 50, type: 'count', target: 5, days: DAILY, deadline: '21:00' },
+    { id: 'perio', title: 'Perio ch.4', stat: 'mind', xp: 35, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
+    { id: 'ship', title: 'Ship academy landing page', stat: 'craft', xp: 50, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
+    { id: 'sleep', title: 'Asleep by 23:00', stat: 'rest', xp: 35, type: 'check', target: 1, days: DAILY, deadline: '23:00' },
   ];
 }
 

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useYami, todayKey } from '@/src/data/store';
 import { addDays, ymd } from '@/src/domain/time';
 import { overdue, searchTasks, someday, tasksForDay, upcoming, TASK_STAT } from '@/src/domain/tasks';
+import { TASK_XP, TASKS_REWARDED_PER_DAY } from '@/src/domain/economy';
 import { STAT_IDS, type StatId, type Task } from '@/src/domain/types';
 import { addTaskEvent, calendarSupported, readEvents, removeEvent, requestCalendar, type CalEvent } from '@/src/calendar/calendar';
 import { QuickAdd, TaskRow, fmtDay, validDate } from '@/src/features/plan';
@@ -130,7 +131,6 @@ function Editor({ task, onClose }: { task: Task; onClose: () => void }) {
   const [time, setTime] = useState(task.time ?? '');
   const [notes, setNotes] = useState(task.notes ?? '');
   const [stat, setStat] = useState<StatId>(task.stat ?? TASK_STAT);
-  const [xp, setXp] = useState(task.xp);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState('');
   const dateOk = !date || validDate(date);
@@ -138,7 +138,7 @@ function Editor({ task, onClose }: { task: Task; onClose: () => void }) {
 
   const current = (): Task | null => {
     if (!title.trim() || !dateOk || !timeOk) return null;
-    return { ...task, title: title.trim(), date: date || undefined, time: time || undefined, notes: notes.trim() || undefined, stat, xp };
+    return { ...task, title: title.trim(), date: date || undefined, time: time || undefined, notes: notes.trim() || undefined, stat };
   };
   const save = () => { const t = current(); if (t) { updateTask(t); onClose(); } };
   const toCalendar = async () => {
@@ -170,8 +170,7 @@ function Editor({ task, onClose }: { task: Task; onClose: () => void }) {
         <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />
         <T v="label">Stat it grows</T>
         <Segmented label="Stat" value={stat} onChange={setStat} options={STAT_IDS.map(k => ({ v: k, label: stats[k].name.slice(0, 5) }))} />
-        <T v="label">XP</T>
-        <Segmented label="XP" value={xp} onChange={setXp} options={[5, 10, 20, 40].map(v => ({ v, label: String(v) }))} />
+        <T style={{ fontSize: 12, color: colors.white3 }}>Each to-do pays {TASK_XP} XP. The first {TASKS_REWARDED_PER_DAY} you finish each day count.</T>
         <Row>
           <Button small label="Save" onPress={save} style={{ flex: 1 }} />
           <Button small variant="ghost" label="Cancel" onPress={onClose} style={{ flex: 1 }} />

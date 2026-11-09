@@ -5,6 +5,7 @@ import { useYami } from '../src/data/store';
 import { newProfile } from '../src/domain/defaults';
 import { overdue, parseQuick, searchTasks, someday, tasksForDay, upcoming } from '../src/domain/tasks';
 import type { Profile, Task } from '../src/domain/types';
+import { TASK_XP } from '../src/domain/economy';
 
 const TODAY = '2026-11-09'; // a Monday
 const S = () => useYami.getState();
@@ -65,18 +66,18 @@ describe('store tasks', () => {
     S().addTask(task('t1', { stat: 'mind', xp: 20 }));
     const before = S().profile.stats.mind;
     S().toggleTask('t1', new Date('2026-11-09T10:00:00'));
-    expect(S().profile.stats.mind.xp).toBe(before.xp + 20);
+    expect(S().profile.stats.mind.xp).toBe(before.xp + TASK_XP); // fixed reward, the task's own xp is ignored
     expect(S().profile.tasks[0].doneAt).toBe(new Date('2026-11-09T10:00:00').getTime());
-    expect(S().gain).toMatchObject({ xp: 20, stat: 'MIND' });
+    expect(S().gain).toMatchObject({ xp: TASK_XP, stat: 'MIND' });
     S().toggleTask('t1', new Date('2026-11-09T10:01:00'));
     expect(S().profile.stats.mind).toEqual(before);
     expect(S().profile.tasks[0].doneAt).toBeUndefined();
-    expect(S().gain).toMatchObject({ xp: -20 });
+    expect(S().gain).toMatchObject({ xp: -TASK_XP });
   });
   test('default stat is craft', () => {
     S().addTask(task('t2'));
     S().toggleTask('t2');
-    expect(S().profile.stats.craft.xp).toBe(10);
+    expect(S().profile.stats.craft.xp).toBe(TASK_XP);
   });
   test('update and delete', () => {
     S().addTask(task('t3'));

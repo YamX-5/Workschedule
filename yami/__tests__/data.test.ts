@@ -113,7 +113,7 @@ describe('store', () => {
     const salah = S().profile.quests.find(q => q.id === 'salah')!;
     S().report('salah', 'done', 1, new Date('2026-11-08T12:00:00'));
     S().report('salah', 'done', 2, new Date('2026-11-08T12:10:00'));
-    expect(S().profile.reports[0]).toMatchObject({ units: 2, xp: salah.xp * 2 });
+    expect(S().profile.reports[0]).toMatchObject({ units: 2, xp: Math.round((salah.xp * 2) / salah.target) }); // whole-day XP split across units
   });
   test('todayKey before Fajr is yesterday', () => expect(todayKey(S().profile, new Date('2026-11-09T03:00:00'))).toBe('2026-11-08'));
 });

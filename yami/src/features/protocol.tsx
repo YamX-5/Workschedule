@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import type { Preset, Quest, QuestType, StatId } from '@/src/domain/types';
 import { STAT_IDS } from '@/src/domain/types';
+import { COUNT_MAX, DAILY_XP_CAP, TIMER_MAX_MIN, XP_TIERS, XP_TIER_NAMES, sanitizeQuest, toTier } from '@/src/domain/economy';
 import { Button } from '@/src/ui/Button';
 import { Field } from '@/src/ui/ModalScreen';
 import { Row, Segmented } from '@/src/ui/parts';
@@ -48,7 +49,7 @@ export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
   const save = () => {
     if (!q.title.trim()) { setErr('Name the quest'); return; }
     if (!HHMM.test(q.deadline)) { setErr('Deadline must look like 21:00'); return; }
-    onSave({ ...q, title: q.title.trim(), target: q.type === 'check' ? 1 : Math.max(1, q.target), xp: Math.max(1, q.xp) });
+    onSave(sanitizeQuest({ ...q, title: q.title.trim() }));
   };
   return (
     <View style={{ gap: space.s3, padding: space.s3, borderWidth: 1, borderColor: colors.blue2 }}>
@@ -60,10 +61,12 @@ export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
       <Segmented<QuestType> label="Type" value={q.type} onChange={type => setQ({ ...q, type })} options={[{ v: 'check', label: 'Check' }, { v: 'count', label: 'Count' }, { v: 'timer', label: 'Timer' }]} />
       <T testID="qe-type-help" style={{ fontSize: 12, color: colors.white2 }}>{TYPE_HELP[q.type]}</T>
       <Row style={{ gap: space.s3 }}>
-        <Field label="XP" value={String(q.xp)} keyboardType="number-pad" onChangeText={t => setQ({ ...q, xp: parseInt(t, 10) || 0 })} />
-        {q.type !== 'check' && <Field label={q.type === 'timer' ? 'Minutes' : 'Target'} value={String(q.target)} keyboardType="number-pad" onChangeText={t => setQ({ ...q, target: parseInt(t, 10) || 0 })} />}
+        {q.type !== 'check' && <Field label={q.type === 'timer' ? `Minutes (max ${TIMER_MAX_MIN})` : `Target (max ${COUNT_MAX})`} value={String(q.target)} keyboardType="number-pad" maxLength={3} onChangeText={t => setQ({ ...q, target: parseInt(t, 10) || 0 })} />}
         <Field label="Report by" value={q.deadline} onChangeText={deadline => { setQ({ ...q, deadline }); setErr(''); }} error={err.startsWith('Deadline') ? err : undefined} />
       </Row>
+      <T v="label">Difficulty</T>
+      <Segmented<number> label="Difficulty" value={toTier(q.xp)} onChange={xp => setQ({ ...q, xp })} options={XP_TIERS.map((v, i) => ({ v, label: `${XP_TIER_NAMES[i]} ${v}` }))} />
+      <T style={{ fontSize: 12, color: colors.white2 }}>XP for clearing it in a day{q.type === 'count' ? ', split across the units' : ''}. You can earn at most {DAILY_XP_CAP} XP a day in total.</T>
       <T v="label">Days</T>
       <Row style={{ gap: 4 }}>
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => {

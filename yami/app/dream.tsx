@@ -7,7 +7,8 @@ import { ModalScreen, Field } from '@/src/ui/ModalScreen';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { Bar, Row, Segmented } from '@/src/ui/parts';
-import { CLEARS_PER_STEP, dreamProgress } from '@/src/domain/progress';
+import { CLEARS_PER_STEP, dreamProgress, milestoneBlock } from '@/src/domain/progress';
+import { MAX_MILESTONES } from '@/src/domain/economy';
 import { T } from '@/src/ui/Text';
 import { space } from '@/src/ui/tokens';
 import { fmtDate } from '@/src/ui/format';
@@ -70,7 +71,7 @@ export default function DreamScreen() {
                 <T style={{ flex: 1, color: m.doneAt ? colors.white3 : colors.white }}>{m.title}</T>
                 {m.doneAt ? <T style={{ fontSize: 12, color: colors.blue }}>{fmtDate(m.doneAt)}</T>
                   : confirm === m.id ? <Button small variant="seal" label="Confirm" onPress={() => { completeMilestone(existing.id, m.id); setConfirm(null); }} />
-                  : <Button small variant="ghost" label="Done" onPress={() => setConfirm(m.id)} />}
+                  : <Button small variant="ghost" label="Done" onPress={() => { const why = milestoneBlock(p, existing.id, Date.now()); if (why) setErr(why); else setConfirm(m.id); }} />}
               </Row>
             ))}
             {(() => {
@@ -95,7 +96,7 @@ export default function DreamScreen() {
           {steps.map((t, i) => (
             <Field key={i} label={`Step ${i + 1}`} value={t} onChangeText={v => { const n = [...steps]; n[i] = v; setSteps(n); setErr(''); }} placeholder={i === 0 ? 'Wall sit 5×45s with no pain' : ''} />
           ))}
-          <Button small variant="ghost" label="Add step" onPress={() => setSteps([...steps, ''])} />
+          <Button small variant="ghost" label="Add step" disabled={(existing?.milestones.length ?? 0) + steps.length >= MAX_MILESTONES} onPress={() => setSteps([...steps, ''])} />
           {err && title.trim() ? <T style={{ fontSize: 12, color: colors.purpleSoft }}>{err}</T> : null}
         </View>
       </Window>

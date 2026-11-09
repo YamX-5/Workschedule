@@ -4,7 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, Report, ReportKind, Reward, StatId, Task } from '../domain/types';
 import { newProfile } from '../domain/defaults';
 import { addDays, atOnDay, dayKey } from '../domain/time';
-import { instantReward, judgeDay } from '../domain/judgment';
+import { instantReward, judgeDay, shardsForXp, verdictFor } from '../domain/judgment';
+import { MAX_QUESTS, TASK_XP, capGrant, sanitizeQuest } from '../domain/economy';
 import { fall } from '../domain/fall';
 import { applyXp } from '../domain/xp';
 import { formFor } from '../domain/forms';
@@ -35,7 +36,7 @@ function rollUsage(p: Profile, key: string): Profile {
 export type JudgmentOutcome = ReturnType<typeof judgeDay> & { newRecords?: RecordId[]; levelBefore?: number };
 
 /** A small "+XP" pop after a report. Not persisted. */
-export interface Gain { id: number; xp: number; shards: number; stat: string; levelUp: boolean }
+export interface Gain { id: number; xp: number; shards: number; stat: string; levelUp: boolean; /** hit today's XP limit */ capped?: boolean }
 /** A full-screen win moment (level up, new form, milestone, dream). Not persisted. */
 export interface Celebration { title: string; sub: string; kind: 'level' | 'form' | 'milestone' | 'dream' }
 
@@ -53,7 +54,8 @@ interface YamiState {
   cycleGate(i: number, now?: Date): void;
   runJudgment(now?: Date): JudgmentOutcome | null;
   updateProtocol(patch: Partial<Protocol>): void;
-  upsertQuest(q: Quest): void;
+  /** False when adding would pass MAX_QUESTS. Values are clamped to the economy limits. */
+  upsertQuest(q: Quest): boolean;
   deleteQuest(id: string): void;
   renameStat(id: StatId, name: string): void;
   toggleStat(id: StatId): boolean;
@@ -72,6 +74,8 @@ interface YamiState {
   toggleTask(id: string, now?: Date): void;
   triggerFall(now?: Date): void;
   reset(): void;
+  /** Back to LV 1 / Day 1 with 0 Shards, keeping your quests, dreams (un-done), to-dos, rewards and settings. */
+  restartProgress(now?: Date): void;
   /** Replace the profile from a backup string. Returns false (and changes nothing) if it isn't a Yami backup. */
   importProfile(json: string): boolean;
 }
@@ -88,23 +92,27 @@ export const useYami = create<YamiState>()(
         dismissCelebration() { set({ celebration: null }); },
 
         report(questId, kind, units, now = new Date()) {
-          const p = get().profile;
+          const key = todayKey(get().profile, now);
+          const p = rollUsage(get().profile, key);
           const q = p.quests.find(x => x.id === questId);
           if (!q) return;
-          const key = todayKey(p, now);
           const late = now > atOnDay(key, q.deadline, p.protocol.fajrAlarm);
           const prev = p.reports.find(r => r.questId === questId && r.dayKey === key);
           const r: Report = { questId, dayKey: key, kind, units, at: now.getTime(), late };
-          const earned = instantReward(p, q, r);
-          // Bank the difference from any earlier report today, so re-reporting never double-counts.
-          const dXp = earned.xp - (prev?.xp ?? 0);
-          const dShards = earned.shards - (prev?.shards ?? 0);
+          const want = instantReward(p, q, r);
+          // Bank the difference from any earlier report today (never double-counts), limited by the daily XP cap.
+          const xpToday = p.usage.xpEarned ?? 0;
+          const dXp = capGrant(xpToday, want.xp - (prev?.xp ?? 0));
+          const xp = (prev?.xp ?? 0) + dXp;
+          const shards = shardsForXp(verdictFor(q, r), xp);
+          const dShards = shards - (prev?.shards ?? 0);
           const { stat, levelChange } = applyXp(p.stats[q.stat], dXp);
           const next: Profile = {
             ...p,
             stats: { ...p.stats, [q.stat]: stat },
             shards: Math.max(0, p.shards + dShards),
-            reports: [...p.reports.filter(x => x !== prev), { ...r, ...earned }],
+            usage: { ...p.usage, xpEarned: Math.max(0, xpToday + dXp) },
+            reports: [...p.reports.filter(x => x !== prev), { ...r, xp, shards }],
           };
           const before = playerLevel(p);
           const after = playerLevel(next);
@@ -112,7 +120,9 @@ export const useYami = create<YamiState>()(
           const formAfter = formFor(after);
           set({
             profile: unlock(next, now.getTime()),
-            gain: dXp ? { id: now.getTime(), xp: dXp, shards: dShards, stat: p.stats[q.stat].name, levelUp: levelChange > 0 } : get().gain,
+            gain: dXp || want.xp > (prev?.xp ?? 0)
+              ? { id: now.getTime(), xp: dXp, shards: dShards, stat: p.stats[q.stat].name, levelUp: levelChange > 0, capped: dXp < want.xp - (prev?.xp ?? 0) }
+              : get().gain,
             celebration: formAfter.tier > formBefore.tier
               ? { title: `New form: ${formAfter.name}`, sub: formAfter.upgrade, kind: 'form' }
               : after > before ? { title: `Level ${after}`, sub: `${p.stats[q.stat].name} grew stronger.`, kind: 'level' } : get().celebration,
@@ -204,8 +214,13 @@ export const useYami = create<YamiState>()(
         },
 
         updateProtocol(pp) { patch(p => ({ ...p, protocol: { ...p.protocol, ...pp } })); },
-        upsertQuest(q) {
-          patch(p => ({ ...p, quests: p.quests.some(x => x.id === q.id) ? p.quests.map(x => (x.id === q.id ? q : x)) : [...p.quests, q] }));
+        upsertQuest(q0) {
+          const p = get().profile;
+          const q = sanitizeQuest(q0);
+          const exists = p.quests.some(x => x.id === q.id);
+          if (!exists && p.quests.length >= MAX_QUESTS) return false;
+          set({ profile: { ...p, quests: exists ? p.quests.map(x => (x.id === q.id ? q : x)) : [...p.quests, q] } });
+          return true;
         },
         deleteQuest(id) { patch(p => ({ ...p, quests: p.quests.filter(q => q.id !== id) })); },
         renameStat(id, name) { patch(p => ({ ...p, stats: { ...p.stats, [id]: { ...p.stats[id], name } } })); },
@@ -256,17 +271,36 @@ export const useYami = create<YamiState>()(
         updateTask(t) { patch(p => ({ ...p, tasks: p.tasks.map(x => (x.id === t.id ? t : x)) })); },
         deleteTask(id) { patch(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) })); },
         toggleTask(id, now = new Date()) {
-          const p = get().profile;
-          const r = toggleTaskRule(p, id, now.getTime());
+          const key = todayKey(get().profile, now);
+          const p = rollUsage(get().profile, key);
+          const xpToday = p.usage.xpEarned ?? 0;
+          const paidToday = p.tasks.filter(t => t.doneAt && (t.xpEarned ?? 0) > 0 && todayKey(p, new Date(t.doneAt)) === key).length;
+          const r = toggleTaskRule(p, id, now.getTime(), xpToday, paidToday);
           if (!r) return;
+          const completing = !p.tasks.find(t => t.id === id)?.doneAt;
           set({
-            profile: r.profile,
-            gain: { id: now.getTime(), xp: r.xp, shards: 0, stat: p.stats[r.stat].name, levelUp: r.levelChange > 0 },
+            profile: { ...r.profile, usage: { ...r.profile.usage, xpEarned: Math.max(0, xpToday + r.xp) } },
+            gain: { id: now.getTime(), xp: r.xp, shards: 0, stat: p.stats[r.stat].name, levelUp: r.levelChange > 0, capped: completing && r.xp < TASK_XP },
           });
         },
 
         triggerFall(now = new Date()) { patch(p => fall(p, now.getTime())); },
         reset() { set({ profile: newProfile(), lastJudgment: null, gain: null, celebration: null }); },
+        restartProgress(now = new Date()) {
+          const p = get().profile;
+          const fresh = newProfile();
+          set({
+            profile: {
+              ...fresh,
+              name: p.name, onboarded: p.onboarded, protocol: p.protocol, quests: p.quests, rewards: p.rewards,
+              stats: Object.fromEntries(Object.entries(p.stats).map(([k, st]) => [k, { ...st, level: 1, xp: 0 }])) as Profile['stats'],
+              tasks: p.tasks.map(t => ({ ...t, doneAt: undefined, xpEarned: undefined })),
+              dreams: p.dreams.map(d => ({ ...d, achievedAt: undefined, active: true, milestones: d.milestones.map(m => ({ ...m, doneAt: undefined })) })),
+              startKey: todayKey(p, now),
+            },
+            lastJudgment: null, gain: null, celebration: null,
+          });
+        },
         importProfile(json) {
           try {
             const raw = JSON.parse(json);

@@ -2,8 +2,9 @@
 import type { Profile, StatId, Task } from './types';
 import { addDays, weekday } from './time';
 import { applyXp } from './xp';
+import { TASK_XP, TASKS_REWARDED_PER_DAY, capGrant } from './economy';
 
-export const TASK_XP = 10;
+export { TASK_XP } from './economy';
 export const TASK_STAT: StatId = 'craft';
 
 const byWhen = (a: Task, b: Task) =>
@@ -27,15 +28,25 @@ export function searchTasks(p: Profile, query: string, todayKey: string) {
   return { future: hits.filter(t => !t.date || t.date >= todayKey), past: hits.filter(t => t.date && t.date < todayKey).reverse() };
 }
 
-/** Complete banks the task's XP into its stat now; undo takes exactly that back. */
-export function toggleTaskRule(p: Profile, id: string, at: number): { profile: Profile; xp: number; stat: StatId; levelChange: number } | null {
+/**
+ * Complete banks the task's XP into its stat now; undo takes exactly that back.
+ * `earnedToday` is XP already banked today; `paidToday` is how many to-dos already paid XP today.
+ */
+export function toggleTaskRule(p: Profile, id: string, at: number, earnedToday = 0, paidToday = 0):
+  { profile: Profile; xp: number; stat: StatId; levelChange: number } | null {
   const t = p.tasks.find(x => x.id === id);
   if (!t) return null;
   const stat = t.stat ?? TASK_STAT;
-  const xp = t.doneAt ? -t.xp : t.xp;
+  const xp = t.doneAt
+    ? -(t.xpEarned ?? t.xp)
+    : paidToday >= TASKS_REWARDED_PER_DAY ? 0 : capGrant(earnedToday, TASK_XP);
   const r = applyXp(p.stats[stat], xp);
   return {
-    profile: { ...p, stats: { ...p.stats, [stat]: r.stat }, tasks: p.tasks.map(x => (x.id === id ? { ...x, doneAt: t.doneAt ? undefined : at } : x)) },
+    profile: {
+      ...p,
+      stats: { ...p.stats, [stat]: r.stat },
+      tasks: p.tasks.map(x => (x.id === id ? { ...x, doneAt: t.doneAt ? undefined : at, xpEarned: t.doneAt ? undefined : xp } : x)),
+    },
     xp, stat, levelChange: r.levelChange,
   };
 }

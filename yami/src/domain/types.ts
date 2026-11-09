@@ -27,7 +27,7 @@ export interface Report {
   units: number;
   at: number; // epoch ms
   late: boolean;
-  /** XP and Shards already banked the moment this was reported; Judgment only settles the difference. */
+  /** XP and Shards banked the moment this was reported (after the daily cap). Final: Judgment only adds penalties. */
   xp?: number;
   shards?: number;
 }
@@ -80,6 +80,8 @@ export interface Task {
   stat?: StatId;
   xp: number;
   doneAt?: number;
+  /** XP actually paid on completion (0 past the daily limits); undo refunds exactly this. */
+  xpEarned?: number;
   calendarEventId?: string;
   notes?: string;
 }
@@ -115,6 +117,8 @@ export interface Usage {
   reserveReasons: string[];
   earnedMin: number;
   energy?: number;
+  /** XP banked today from quests and to-dos; capped at DAILY_XP_CAP. */
+  xpEarned?: number;
   /** Fajr..Isha gate marks for this day. */
   gates?: GateMark[];
 }
