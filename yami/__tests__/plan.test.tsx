@@ -16,5 +16,6 @@ test('quick add puts a task on today and the checkbox banks XP', async () => {
   expect(screen.getByText('call Ali')).toBeTruthy();
   await fireEvent.press(screen.getByTestId(`toggle-${t.id}`));
   expect(useYami.getState().profile.tasks[0].doneAt).toBeDefined();
-  expect(useYami.getState().profile.stats.craft.xp).toBe(5);
+  const st = useYami.getState().profile; // to-dos grow the first stat the player uses
+  expect(st.stats[st.tasks[0].stat!].xp).toBe(5);
 });

@@ -37,7 +37,7 @@ async function targetCalendar(): Promise<Calendar.ExpoCalendar> {
   return Calendar.createCalendar({
     title: 'Yami',
     name: 'yami',
-    color: '#8FDCFF',
+    color: '#9B5CFF',
     entityType: Calendar.EntityTypes.EVENT,
     accessLevel: Calendar.CalendarAccessLevel.OWNER,
     ownerAccount: 'Yami',

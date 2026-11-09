@@ -1,11 +1,11 @@
-﻿// Character forms: the avatar upgrades every 10 player levels, up to The Chosen One at LV 100.
+// Character forms: the avatar upgrades every 10 player levels, up to The Chosen One at LV 100.
 // Form follows the CURRENT level, so slipping below a threshold loses the form; the best form ever reached is kept.
 
 export interface Form { tier: number; minLevel: number; name: string; upgrade: string }
 
 export const FORMS: Form[] = [
   { tier: 0, minLevel: 0, name: 'Dormant', upgrade: 'A shadow that has not woken.' },
-  { tier: 1, minLevel: 10, name: 'Awakened', upgrade: 'Eyes light up blue.' },
+  { tier: 1, minLevel: 10, name: 'Awakened', upgrade: 'The eyes ignite.' },
   { tier: 2, minLevel: 20, name: 'Initiate', upgrade: 'A core of light in the chest.' },
   { tier: 3, minLevel: 30, name: 'Seeker', upgrade: 'The hooded cloak.' },
   { tier: 4, minLevel: 40, name: 'Vanguard', upgrade: 'Shoulder armour.' },

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useYami, todayKey, uid } from '@/src/data/store';
 import { addDays } from '@/src/domain/time';
 import { overdue, parseQuick, tasksForDay, TASK_STAT, TASK_XP } from '@/src/domain/tasks';
-import type { Task } from '@/src/domain/types';
+import { STAT_IDS, type Task } from '@/src/domain/types';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { Row } from '@/src/ui/parts';
@@ -33,7 +33,7 @@ export function QuickAdd({ initial = 'today' }: { initial?: When }) {
 
   const add = () => {
     if (!text.trim()) return;
-    useYami.getState().addTask({ id: uid(), title: parsed.title, date, time: parsed.time, xp: TASK_XP, stat: TASK_STAT });
+    useYami.getState().addTask({ id: uid(), title: parsed.title, date, time: parsed.time, xp: TASK_XP, stat: STAT_IDS.find(k => p.stats[k].enabled) ?? TASK_STAT }); // first stat the player uses
     setText('');
   };
 
