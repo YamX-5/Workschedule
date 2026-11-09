@@ -95,13 +95,21 @@ export default function Status() {
                 </Row>
                 <Bar value={pr.value} color={colors.blue} h={6} />
                 <T style={s.sub2} numberOfLines={2}>
-                  {nextStep ? `Next: ${nextStep.title} · ${pr.clears}/${CLEARS_PER_STEP} quest clears` : 'All milestones done'}
+                  {nextStep ? `Next milestone: ${nextStep.title} · ${pr.clears}/${CLEARS_PER_STEP} clears` : 'All milestones done'}
                   {pr.daysLeft !== undefined ? ` · ${pr.daysLeft >= 0 ? `${pr.daysLeft}d left` : `${-pr.daysLeft}d over`} · ${pr.onPace ? 'on pace' : 'behind'}` : ''}
                 </T>
               </Press>
             );
           })}
-          {dreams.length < 3 && <Button small variant="ghost" label={dreams.length ? 'Add a dream' : 'Add your first dream'} onPress={() => router.push('/dream')} />}
+          {!dreams.length && (
+            <View style={{ gap: space.s2 }} testID="dreams-empty">
+              <T style={s.dreamT}>No dreams yet.</T>
+              <T style={s.sub2}>A Dream is a long goal, like a 5K or a finished book. Link quests to it and every clear moves the bar.</T>
+            </View>
+          )}
+          {dreams.length < 3 && (dreams.length
+            ? <Button small variant="ghost" label="Add a dream" onPress={() => router.push('/dream')} />
+            : <Pulse on={p.quests.length > 0}><Button small variant="seal" label="Add your first dream" testID="add-first-dream" onPress={() => router.push('/dream')} /></Pulse>)}
         </View>
       </Window>
 
