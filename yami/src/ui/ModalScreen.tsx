@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, type TextInputProps } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { font, space } from './tokens';
 import { T } from './Text';
-import { tap } from './motion';
+import { Press } from './Press';
+import { Stagger } from './parts';
 import { themed, useColors, useTheme } from './theme';
 
 export function ModalScreen({ title, kana, right, children }: { title: string; kana?: string; right?: ReactNode; children: ReactNode }) {
@@ -15,16 +16,16 @@ export function ModalScreen({ title, kana, right, children }: { title: string; k
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.black }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[s.head, { paddingTop: ins.top + space.s2 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" style={s.back} onPress={() => { tap(); router.canGoBack() ? router.back() : router.replace('/'); }}>
+        <Press accessibilityRole="button" accessibilityLabel="Back" style={s.back} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
           <Svg width={20} height={20} viewBox="0 0 20 20"><Path d="M12 4 L6 10 L12 16" stroke={colors.white} strokeWidth={2} fill="none" /></Svg>
-        </Pressable>
+        </Press>
         <T v="display" style={{ fontSize: 14, letterSpacing: 3 }}>{title}</T>
         {kana ? <T v="kana">{kana}</T> : null}
         <View style={{ flex: 1 }} />
         {right}
       </View>
       <ScrollView contentContainerStyle={{ padding: space.s4, paddingBottom: ins.bottom + space.s6, gap: space.s4 }} keyboardShouldPersistTaps="handled">
-        {children}
+        <Stagger>{children}</Stagger>
       </ScrollView>
     </KeyboardAvoidingView>
   );

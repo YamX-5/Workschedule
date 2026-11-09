@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Michroma_400Regular } from '@expo-google-fonts/michroma';
 import { ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold } from '@expo-google-fonts/chakra-petch';
-import 'react-native-reanimated';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useYami } from '@/src/data/store';
 import { syncReminders } from '@/src/notify/reminders';
 import { CelebrationOverlay, GainToast } from '@/src/features/Rewards';
@@ -22,6 +22,9 @@ export default function RootLayout() {
   const [fonts] = useFonts({ Michroma_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
   const [hydrated, setHydrated] = useState(useYami.persist.hasHydrated());
   const { c: colors, dark } = useTheme();
+  const reduced = useReducedMotion();
+  // Sheets slide up from the bottom on Android (iOS 'default' is the native sheet); everything fades under reduced motion.
+  const sheet = reduced ? 'fade' : Platform.OS === 'android' ? 'slide_from_bottom' : 'default';
   // Web: paint the page behind the app too, so overscroll never flashes the old colour.
   useEffect(() => { if (Platform.OS === 'web') document.body.style.backgroundColor = colors.black; }, [colors.black]);
 
@@ -56,10 +59,10 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="judgment" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="lock" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="protocol" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="dream" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="shop" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="lock" options={{ presentation: 'fullScreenModal', animation: sheet }} />
+        <Stack.Screen name="protocol" options={{ presentation: 'modal', animation: sheet }} />
+        <Stack.Screen name="dream" options={{ presentation: 'modal', animation: sheet }} />
+        <Stack.Screen name="shop" options={{ presentation: 'modal', animation: sheet }} />
       </Stack>
       <GainToast />
       <CelebrationOverlay />

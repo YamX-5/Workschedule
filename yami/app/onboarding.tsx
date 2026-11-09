@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useYami } from '@/src/data/store';
 import { HeroStage, Row } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
+import Animated from 'react-native-reanimated';
+import { enter } from '@/src/ui/motion';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
 import { space } from '@/src/ui/tokens';
@@ -24,7 +26,8 @@ export default function Onboarding() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.black, justifyContent: 'center', padding: space.s4 }}>
       <HeroStage />
-      <Window title="System" kana="システム" meta={`${i + 1} / ${STEPS.length}`} key={i}>
+      <Animated.View key={i} entering={enter(0)}>
+      <Window title="System" kana="システム" meta={`${i + 1} / ${STEPS.length}`}>
         <T v="display" style={{ fontSize: 22, lineHeight: 32 }} testID="onb-title">{step.title}</T>
         <T style={{ color: colors.white2, marginTop: space.s3 }}>{step.body}</T>
         <Row style={{ gap: 4, marginTop: space.s4 }}>
@@ -35,6 +38,7 @@ export default function Onboarding() {
           <Button label={i === STEPS.length - 1 ? 'Begin' : 'Continue'} testID="onb-next" onPress={() => (i === STEPS.length - 1 ? done() : setI(i + 1))} />
         </Row>
       </Window>
+      </Animated.View>
     </View>
   );
 }

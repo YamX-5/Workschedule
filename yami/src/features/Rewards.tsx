@@ -1,7 +1,7 @@
 // Instant feedback: a "+XP" pop after every report and a full-screen moment for big wins.
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import Animated, { FadeIn, FadeOut, Keyframe, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useYami } from '@/src/data/store';
 import { formFor } from '@/src/domain/forms';
@@ -9,11 +9,19 @@ import { playerLevel } from '@/src/domain/progress';
 import { T } from '@/src/ui/Text';
 import { Button } from '@/src/ui/Button';
 import { font, space } from '@/src/ui/tokens';
-import { success } from '@/src/ui/motion';
+import { EASE_OUT, success } from '@/src/ui/motion';
 import { CharacterView } from '@/src/ui/CharacterView';
 import { themed, useColors } from '@/src/ui/theme';
 
 const GAIN_MS = 1800;
+
+// Toast drops in from just above (8px, from 0.95) and leaves faster than it came. Overlay card settles on a spring.
+const TOAST_IN = new Keyframe({
+  0: { opacity: 0, transform: [{ translateY: -8 }, { scale: 0.95 }] },
+  100: { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }], easing: EASE_OUT },
+}).duration(220);
+const OUT = FadeOut.duration(150);
+const CARD_IN = ZoomIn.springify().duration(400).dampingRatio(0.85).withInitialValues({ transform: [{ scale: 0.95 }] });
 
 export function GainToast() {
   const colors = useColors();
@@ -30,7 +38,7 @@ export function GainToast() {
   if (!gain || shown !== gain.id) return null;
   const up = gain.xp > 0;
   return (
-    <Animated.View key={gain.id} entering={FadeInDown} exiting={FadeOut} pointerEvents="none"
+    <Animated.View key={gain.id} entering={TOAST_IN} exiting={OUT} pointerEvents="none"
       style={[s.toast, { top: ins.top + space.s2 }, !up && { borderColor: colors.purpleSoft }]} testID="gain-toast">
       <T style={[s.xp, !up && { color: colors.purpleSoft }]}>{up ? '+' : ''}{gain.xp} XP</T>
       <T style={s.stat}>{gain.stat}</T>
@@ -45,19 +53,20 @@ export function CelebrationOverlay() {
   const c = useYami(st => st.celebration);
   const level = useYami(st => playerLevel(st.profile));
   const dismiss = useYami(st => st.dismissCelebration);
-  useEffect(() => { if (c) success(); }, [c]);
+  // Before paint, so the haptic lands in the same frame the overlay appears.
+  useLayoutEffect(() => { if (c) success(); }, [c]);
   if (!c) return null;
   const big = c.kind === 'form' || c.kind === 'dream';
   return (
-    <Animated.View entering={FadeInDown} exiting={FadeOut} style={s.overlay} testID="celebration">
+    <Animated.View entering={FadeIn.duration(200)} exiting={OUT} style={s.overlay} testID="celebration">
       <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel="Close" />
-      <View style={s.card}>
+      <Animated.View entering={CARD_IN} style={s.card}>
         <T style={s.kicker}>{KICKER[c.kind]}</T>
         {big && <CharacterView tier={formFor(level).tier} size={150} />}
         <T style={s.title}>{c.title}</T>
         <T style={s.sub}>{c.sub}</T>
         <Button label="Continue" onPress={dismiss} style={{ alignSelf: 'stretch', marginTop: space.s3 }} />
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }

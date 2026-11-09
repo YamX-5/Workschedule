@@ -1,26 +1,18 @@
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { space } from './tokens';
 import { themed, useColors } from './theme';
 import { T } from './Text';
-import { useReduceMotion } from './motion';
 
-/** HUD frame with corner brackets. Opens line-then-expand (scaleY), instant under reduce-motion. */
+/** HUD frame with corner brackets. Its entrance is staggered by the Screen / ModalScreen that holds it (motion.enter). */
 export function Window({ title, kana, meta, tone = 'glass', children, style }: {
   title?: string; kana?: string; meta?: ReactNode; tone?: 'glass' | 'white'; children: ReactNode; style?: ViewStyle;
 }) {
   const colors = useColors();
   const s = useS();
-  const rm = useReduceMotion();
-  const open = useSharedValue(rm ? 1 : 0.02);
-  useEffect(() => {
-    open.value = rm ? 1 : withTiming(1, { duration: 280, easing: Easing.bezier(0.22, 1, 0.36, 1) });
-  }, [rm, open]);
-  const a = useAnimatedStyle(() => ({ transform: [{ scaleY: open.value }], opacity: 0.4 + open.value * 0.6 }));
   const light = tone === 'white';
   return (
-    <Animated.View testID="window" style={[s.win, light ? s.light : s.glass, a, style]}>
+    <View testID="window" style={[s.win, light ? s.light : s.glass, style]}>
       <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
       {title ? (
         <View style={s.head}>
@@ -31,7 +23,7 @@ export function Window({ title, kana, meta, tone = 'glass', children, style }: {
         </View>
       ) : null}
       {children}
-    </Animated.View>
+    </View>
   );
 }
 

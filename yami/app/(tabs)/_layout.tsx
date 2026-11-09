@@ -1,11 +1,11 @@
 import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polygon, Rect } from 'react-native-svg';
 import { font, space, TAB_BAR_H } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
-import { tap } from '@/src/ui/motion';
+import { Press } from '@/src/ui/Press';
 import { themed, useColors } from '@/src/ui/theme';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -45,11 +45,11 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
         const t = TABS.find(x => x.name === r.name);
         const c = on ? colors.black : colors.white3;
         return (
-          <Pressable key={r.key} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t?.label}
-            onPress={() => { tap(); if (!on) navigateToTab(r.key); }} style={[s.tab, on && s.on]}>
+          <Press key={r.key} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t?.label}
+            onPress={() => { if (!on) navigateToTab(r.key); }} style={[s.tab, on && s.on]}>
             <Icon name={r.name} c={c} />
             <T numberOfLines={1} style={[s.lbl, { color: c }]}>{t?.label}</T>
-          </Pressable>
+          </Press>
         );
       })}
     </View>
@@ -60,7 +60,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
 export default function TabLayout() {
   const colors = useColors();
   return (
-    <Tabs tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.black } }}>
+    <Tabs tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: colors.black } }}>
       {TABS.map(t => <Tabs.Screen key={t.name} name={t.name} options={{ title: t.label }} />)}
     </Tabs>
   );

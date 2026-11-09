@@ -1,4 +1,4 @@
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useYami } from '@/src/data/store';
 import { playerLevel, rankFor } from '@/src/domain/progress';
@@ -11,7 +11,7 @@ import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
 import { font, space } from '@/src/ui/tokens';
 import { fmtMin } from '@/src/ui/format';
-import { tap } from '@/src/ui/motion';
+import { Press } from '@/src/ui/Press';
 import { themed, useColors } from '@/src/ui/theme';
 
 
@@ -64,12 +64,12 @@ export default function Path() {
         {active.map(d => {
           const done = d.milestones.filter(m => m.doneAt).length;
           return (
-            <Pressable key={d.id} accessibilityRole="button" onPress={() => { tap(); router.push({ pathname: '/dream', params: { id: d.id } }); }} style={s.dream}>
+            <Press key={d.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/dream', params: { id: d.id } })} style={s.dream}>
               <Row><T v="display" style={{ fontSize: 12, flex: 1 }}>{d.title}</T><T style={s.tag}>{p.stats[d.stat].name}</T></Row>
               {d.why ? <T style={{ fontSize: 13, color: colors.white3 }} numberOfLines={1}>{d.why}</T> : null}
               <Bar value={d.milestones.length ? done / d.milestones.length : 0} />
               <T style={{ fontSize: 12, color: colors.white2 }}>{done} of {d.milestones.length} milestones</T>
-            </Pressable>
+            </Press>
           );
         })}
         {achieved.length > 0 && <T style={{ fontSize: 12, color: colors.blue, marginTop: space.s2 }}>Achieved: {achieved.map(d => d.title).join(' · ')}</T>}

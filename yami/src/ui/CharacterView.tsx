@@ -1,11 +1,15 @@
-// The player's character: a Blender turntable (blender/forms.py), 24 angles per form. Drag left/right to spin.
-import { useMemo, useRef, useState } from 'react';
-import { Image, PanResponder, View } from 'react-native';
+// The player's character: a Blender turntable (blender/forms.py), 24 angles per form.
+// Drag to spin (UI thread: a shared value picks the visible frame), it coasts after a flick and idles in a slow turn.
+import { useEffect } from 'react';
+import { Image, View } from 'react-native';
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withDecay, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import * as F from './formFrames';
 import type { ThemeId } from '../domain/types';
 import { useTheme } from './theme';
 
 const PX_PER_FRAME = 10;
+const IDLE_MS_PER_TURN = 14000;
 
 /** Per-theme turntables once blender/forms.py emits THEME_FRAMES; the single darkness set until then. */
 const framesFor = (theme: ThemeId): number[][] =>
@@ -15,22 +19,46 @@ export function CharacterView({ tier, size = 120, spin = true }: { tier: number;
   const all = framesFor(useTheme().id);
   const frames = all[Math.max(0, Math.min(all.length - 1, tier))];
   const n = frames.length;
-  const [i, setI] = useState(0);
-  const start = useRef(0);
-  const pan = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => spin && Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy),
-    onPanResponderGrant: () => { start.current = i; },
-    onPanResponderMove: (_, g) => setI((((start.current + Math.round(g.dx / PX_PER_FRAME)) % n) + n) % n),
-    onPanResponderTerminationRequest: () => false,
-  }), [spin, n, i]);
+  const reduced = useReducedMotion();
+  const angle = useSharedValue(0); // in frames; any real number, wrapped when picking a frame
+  const start = useSharedValue(0);
+  const dragging = useSharedValue(false);
+
+  const idle = () => {
+    'worklet';
+    if (reduced) return;
+    angle.set(withRepeat(withTiming(angle.get() + n, { duration: IDLE_MS_PER_TURN, easing: Easing.linear }), -1, false));
+  };
+  useEffect(() => { idle(); return () => cancelAnimation(angle); }, [reduced, n]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pan = usePanGesture({
+    enabled: spin,
+    activeOffsetX: [-6, 6],
+    failOffsetY: [-12, 12],
+    // Finger down stops the idle turn; a touch that never becomes a drag hands back to it in onFinalize.
+    onBegin: () => { cancelAnimation(angle); start.set(angle.get()); },
+    onActivate: () => { dragging.set(true); },
+    onUpdate: e => { angle.set(start.get() + e.translationX / PX_PER_FRAME); },
+    onDeactivate: e => {
+      if (reduced) return;
+      angle.set(withDecay({ velocity: e.velocityX / PX_PER_FRAME, deceleration: 0.996 }, done => { if (done) idle(); }));
+    },
+    onFinalize: () => { if (dragging.get()) dragging.set(false); else idle(); },
+  });
+
   const w = size;
   const h = size * (480 / 360);
-  // All angles stay mounted and only the current one is visible, so spinning never flickers while images decode.
+  // All angles stay mounted; only the current one is opaque, so spinning never flickers while images decode.
   return (
-    <View style={{ width: w, height: h }} {...pan.panHandlers} accessibilityLabel={`Character, form ${tier}. Drag to spin.`} testID="character">
-      {frames.map((src, k) => (
-        <Image key={k} source={src} style={{ position: 'absolute', width: w, height: h, opacity: k === i ? 1 : 0 }} fadeDuration={0} />
-      ))}
-    </View>
+    <GestureDetector gesture={pan}>
+      <View style={{ width: w, height: h }} accessibilityLabel={`Character, form ${tier}. Drag to spin.`} testID="character">
+        {frames.map((src, k) => <Frame key={k} k={k} n={n} angle={angle} src={src} w={w} h={h} />)}
+      </View>
+    </GestureDetector>
   );
+}
+
+function Frame({ k, n, angle, src, w, h }: { k: number; n: number; angle: SharedValue<number>; src: number; w: number; h: number }) {
+  const a = useAnimatedStyle(() => ({ opacity: ((Math.round(angle.get()) % n) + n) % n === k ? 1 : 0 }));
+  return <Animated.View style={[{ position: 'absolute', width: w, height: h }, a]}><Image source={src} style={{ width: w, height: h }} fadeDuration={0} /></Animated.View>;
 }

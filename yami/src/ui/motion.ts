@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+import { Easing, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 export const spring = { damping: 18, stiffness: 220 } as const;
-export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+/** Strong ease-out for UI (enter, value changes). Never ease-in on UI. */
+export const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+/** Press feedback: fast, felt on press-in. */
+export const PRESS = { duration: 120, easing: EASE_OUT } as const;
+/** Value changes (bars, chips): short ease-out. */
+export const VALUE = { duration: 420, easing: EASE_OUT } as const;
 
-export function useReduceMotion() {
-  const [rm, setRm] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setRm).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setRm);
-    return () => sub.remove();
-  }, []);
-  return rm;
-}
+/** Panel entrance on screen mount: 8px rise + fade, staggered 50ms. Reanimated skips it under reduced motion. */
+export const enter = (i: number) =>
+  FadeInDown.duration(260).delay(Math.min(i, 6) * 50).easing(EASE_OUT).withInitialValues({ opacity: 0, transform: [{ translateY: 8 }] });
+
+/** System reduced-motion setting (synchronous, no state). */
+export const useReduceMotion = useReducedMotion;
 
 // Haptics are fire-and-forget; they no-op on most web browsers.
 export const tap = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); };

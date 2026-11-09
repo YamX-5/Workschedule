@@ -1,12 +1,14 @@
 // Small shared pieces: hero backdrop, screen shell, HUD, bars, segmented control, radar.
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Children, useEffect, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { router } from 'expo-router';
 import { font, space, TAB_BAR_H } from './tokens';
 import { T } from './Text';
-import { tap } from './motion';
+import { VALUE, enter } from './motion';
+import { Press } from './Press';
 import { useYami } from '../data/store';
 import { themed, useColors, useTheme } from './theme';
 
@@ -57,14 +59,19 @@ export function Screen({ children, scroll = true, hud = true }: { children: Reac
     <View style={{ flex: 1, backgroundColor: colors.black }}>
       <HeroStage />
       {scroll ? (
-        <ScrollView contentContainerStyle={pad} showsVerticalScrollIndicator={false}>{hud && <Hud />}{children}</ScrollView>
+        <ScrollView contentContainerStyle={pad} showsVerticalScrollIndicator={false}>{hud && <Hud />}<Stagger>{children}</Stagger></ScrollView>
       ) : (
-        <View style={[{ flex: 1 }, pad]}>{hud && <Hud />}{children}</View>
+        <View style={[{ flex: 1 }, pad]}>{hud && <Hud />}<Stagger>{children}</Stagger></View>
       )}
       {/* keep scrolled content from running under the clock and battery icons */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: ins.top, backgroundColor: colors.black }} />
     </View>
   );
+}
+
+/** Panels rise in one after another when a screen mounts (once; re-renders do not replay it). */
+export function Stagger({ children }: { children: ReactNode }) {
+  return <>{Children.toArray(children).map((ch, i) => <Animated.View key={i} entering={enter(i)}>{ch}</Animated.View>)}</>;
 }
 
 export function Hud() {
@@ -78,13 +85,13 @@ export function Hud() {
         <T v="label" numberOfLines={1}>Day <T v="num" style={{ fontSize: 12 }}>{Math.min(p.day, 66)}</T> / 66</T>
       </View>
       <View style={{ flex: 1 }} />
-      <Pressable accessibilityRole="button" accessibilityLabel={`Honor ${p.honor}`} style={s.honor} onPress={() => { tap(); router.push('/path'); }}>
+      <Press accessibilityRole="button" accessibilityLabel={`Honor ${p.honor}`} style={s.honor} onPress={() => router.push('/path')}>
         <Shield />
         <T v="num" style={{ fontSize: 13 }}>{p.honor}</T>
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Open protocol settings" style={s.ibtn} onPress={() => { tap(); router.push('/protocol'); }}>
+      </Press>
+      <Press accessibilityRole="button" accessibilityLabel="Open protocol settings" style={s.ibtn} onPress={() => router.push('/protocol')}>
         <Gear />
-      </Pressable>
+      </Press>
     </View>
   );
 }
@@ -106,15 +113,18 @@ function Gear() {
   );
 }
 
-/** A thin progress bar. value 0..1. Animated via scaleX (transform only). */
+/** A thin progress bar. value 0..1. Changes glide (ease-out scaleX from the left edge, transform only). */
 export function Bar({ value, color, track, h = 4, style, marks }: {
   value: number; color?: string; track?: string; h?: number; style?: ViewStyle; marks?: number[];
 }) {
   const colors = useColors();
   const v = Math.max(0, Math.min(1, value));
+  const sx = useSharedValue(v);
+  useEffect(() => { sx.set(withTiming(v, VALUE)); }, [v, sx]);
+  const fill = useAnimatedStyle(() => ({ transform: [{ scaleX: sx.get() }] }));
   return (
     <View style={[{ height: h, backgroundColor: track ?? colors.line, overflow: 'hidden' }, style]}>
-      <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v * 100}%`, backgroundColor: color ?? colors.blue }} />
+      <Animated.View style={[{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, transformOrigin: 'left', backgroundColor: color ?? colors.blue }, fill]} />
       {marks?.map(m => <View key={m} style={{ position: 'absolute', top: 0, bottom: 0, left: `${m * 100}%`, width: 1, backgroundColor: colors.black }} />)}
     </View>
   );
@@ -130,10 +140,10 @@ export function Segmented<V extends string | number>({ options, value, onChange,
       {options.map(o => {
         const on = o.v === value;
         return (
-          <Pressable key={String(o.v)} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(o.v); }}
+          <Press key={String(o.v)} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => onChange(o.v)}
             style={[s.segB, on && { backgroundColor: light ? colors.black : colors.white }]}>
             <T style={{ fontFamily: font.textSemi, fontSize: 14, color: on ? (light ? colors.white : colors.black) : light ? colors.ink2 : colors.white2 }}>{o.label}</T>
-          </Pressable>
+          </Press>
         );
       })}
     </View>

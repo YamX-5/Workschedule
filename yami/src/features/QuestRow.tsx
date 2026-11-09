@@ -1,4 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { PRESS, VALUE } from '@/src/ui/motion';
 import type { Quest, Report } from '@/src/domain/types';
 import { font, space } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
@@ -26,7 +29,7 @@ export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
         <View style={s.tags}>
           <T style={s.xp}>{xp} {quest.stat.toUpperCase()}</T>
           {quest.type === 'count' && <T style={s.n}>{report?.kind === 'done' ? report.units : 0}/{quest.target}</T>}
-          {label && <T style={[s.state, label === 'CLEARED' && { backgroundColor: colors.blue, color: colors.black }]}>{label}</T>}
+          {label && <Pop on={label}><T style={[s.state, label === 'CLEARED' && { backgroundColor: colors.blue, color: colors.black }]}>{label}</T></Pop>}
         </View>
         {dream ? <T style={s.dream} numberOfLines={1}>Toward: {dream}</T> : null}
       </View>
@@ -35,6 +38,18 @@ export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
       <Button small variant="outline" label="Didn't" onPress={onDidnt} testID={`didnt-${quest.id}`} style={s.b} />
     </View>
   );
+}
+
+/** Pops its child (0.92 -> 1, ease-out) whenever `on` changes after mount: the state chip reacting to a report. */
+function Pop({ on, children }: { on: string; children: React.ReactNode }) {
+  const k = useSharedValue(1);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    k.set(withSequence(withTiming(0.92, PRESS), withTiming(1, VALUE)));
+  }, [on, k]);
+  const a = useAnimatedStyle(() => ({ transform: [{ scale: k.get() }] }));
+  return <Animated.View style={a}>{children}</Animated.View>;
 }
 
 const useS = themed(colors => ({
