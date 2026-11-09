@@ -3,8 +3,9 @@ import { frictionSec, phoneState } from '@/src/domain/budget';
 import { Intrusion, LimitReached, Sealed } from '@/src/features/lock';
 import { ModalScreen } from '@/src/ui/ModalScreen';
 import { T } from '@/src/ui/Text';
-import { colors } from '@/src/ui/tokens';
+import { useColors } from '@/src/ui/theme';
 export default function Lock() {
+  const colors = useColors();
   const p = useYami(s => s.profile);
   const key = todayKey(p);
   const used = p.usage.dayKey === key ? p.usage.usedMin : p.corruptionCarryMin;

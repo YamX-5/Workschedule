@@ -6,7 +6,8 @@ import { Button } from '@/src/ui/Button';
 import { Field } from '@/src/ui/ModalScreen';
 import { Row, Segmented } from '@/src/ui/parts';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
+import { useColors } from '@/src/ui/theme';
 
 const MULT: Record<Preset, number> = { mercy: 1, balanced: 1.5, ruthless: 2 };
 const signedXp = (n: number) => (n === 0 ? '0 XP' : `−${n} XP`);
@@ -19,6 +20,7 @@ export function presetPreview(preset: Preset, xp = 20) {
 }
 
 export function JudgmentRules({ preset, onChange }: { preset: Preset; onChange: (p: Preset) => void }) {
+  const colors = useColors();
   return (
     <View style={{ gap: space.s2 }}>
       <Segmented label="Judgment preset" value={preset} onChange={onChange}
@@ -39,6 +41,7 @@ export const TYPE_HELP: Record<QuestType, string> = {
 export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
   quest: Quest; statName: (s: StatId) => string; onSave: (q: Quest) => void; onDelete?: () => void; onCancel: () => void;
 }) {
+  const colors = useColors();
   const [q, setQ] = useState(quest);
   const [err, setErr] = useState('');
   const [confirmDel, setConfirmDel] = useState(false);

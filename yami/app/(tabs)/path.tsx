@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useYami } from '@/src/data/store';
 import { playerLevel, rankFor } from '@/src/domain/progress';
@@ -9,12 +9,15 @@ import { Bar, Row, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { fmtMin } from '@/src/ui/format';
-import { tap } from '@/src/ui/motion';
+import { Press } from '@/src/ui/Press';
+import { themed, useColors } from '@/src/ui/theme';
 
 
 export default function Path() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const { width } = useWindowDimensions();
   const lvl = playerLevel(p);
@@ -61,12 +64,12 @@ export default function Path() {
         {active.map(d => {
           const done = d.milestones.filter(m => m.doneAt).length;
           return (
-            <Pressable key={d.id} accessibilityRole="button" onPress={() => { tap(); router.push({ pathname: '/dream', params: { id: d.id } }); }} style={s.dream}>
+            <Press key={d.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/dream', params: { id: d.id } })} style={s.dream}>
               <Row><T v="display" style={{ fontSize: 12, flex: 1 }}>{d.title}</T><T style={s.tag}>{p.stats[d.stat].name}</T></Row>
               {d.why ? <T style={{ fontSize: 13, color: colors.white3 }} numberOfLines={1}>{d.why}</T> : null}
               <Bar value={d.milestones.length ? done / d.milestones.length : 0} />
               <T style={{ fontSize: 12, color: colors.white2 }}>{done} of {d.milestones.length} milestones</T>
-            </Pressable>
+            </Press>
           );
         })}
         {achieved.length > 0 && <T style={{ fontSize: 12, color: colors.blue, marginTop: space.s2 }}>Achieved: {achieved.map(d => d.title).join(' · ')}</T>}
@@ -105,9 +108,9 @@ function Stat({ k, v }: { k: string; v: string | number }) {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   rank: { width: 32, height: 32, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   rankT: { fontFamily: font.display, fontSize: 16, color: colors.black },
   dream: { gap: 6, paddingVertical: space.s3, borderTopWidth: 1, borderTopColor: colors.line },
   tag: { fontFamily: font.textBold, fontSize: 11, color: colors.black, backgroundColor: colors.blue, paddingHorizontal: 6, paddingVertical: 2 },
-});
+}));

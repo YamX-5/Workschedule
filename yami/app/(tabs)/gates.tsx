@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useYami, todayKey } from '@/src/data/store';
 import { PRAYERS, PRAYER_AR, nextPrayer, prayerTimes } from '@/src/prayer/prayer';
 import type { GateMark } from '@/src/domain/types';
 import { Bar, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { fmtMin, fmtTime } from '@/src/ui/format';
-import { tap } from '@/src/ui/motion';
+import { VALUE } from '@/src/ui/motion';
+import { Press } from '@/src/ui/Press';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
+import { themed, useColors } from '@/src/ui/theme';
 
 const MARK: Record<GateMark, string> = { pending: '—', ontime: 'ON TIME', late: 'LATE', miss: 'MISSED' };
 
 export default function Gates() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const cycle = useYami(s => s.cycleGate);
   const [now, setNow] = useState(new Date());
@@ -44,8 +49,8 @@ export default function Gates() {
           const g = gates[i];
           const isNext = n === next.name && g === 'pending';
           return (
-            <Pressable key={n} testID={`gate-${n}`} accessibilityRole="button" accessibilityLabel={`${n} ${MARK[g]}`}
-              onPress={() => { tap(); cycle(i); }}
+            <Press key={n} testID={`gate-${n}`} accessibilityRole="button" accessibilityLabel={`${n} ${MARK[g]}`}
+              onPress={() => cycle(i)}
               style={s.gate}>
               <View style={s.portalBox}>
                 <Portal mark={g} next={isNext} id={n} />
@@ -54,7 +59,7 @@ export default function Gates() {
               <T style={s.gEn}>{n.toUpperCase()}</T>
               <T v="num" style={{ fontSize: 12 }}>{fmtTime(times[n])}</T>
               <T style={[s.gMark, g === 'miss' && { color: colors.purpleSoft }]}>{isNext ? 'NEXT' : MARK[g]}</T>
-            </Pressable>
+            </Press>
           );
         })}
       </View>
@@ -67,10 +72,16 @@ const INNER = 'M14 112 L14 47 A30 30 0 0 1 74 47 L74 112 Z';
 
 /** A gate drawn as a portal: dark and sealed until prayed, glowing open when prayed on time. */
 function Portal({ mark, next, id }: { mark: GateMark; next: boolean; id: string }) {
+  const colors = useColors();
   const open = mark === 'ontime' || mark === 'late';
   const core = mark === 'ontime' ? colors.blue : mark === 'late' ? colors.purpleSoft : colors.purple;
   const rim = mark === 'miss' ? colors.line : next ? colors.blue : open ? core : colors.blue2;
+  // The open glow (inner rings) swells in when a gate opens and fades when it closes.
+  const on = useSharedValue(open ? 1 : 0);
+  useEffect(() => { on.set(withTiming(open ? 1 : 0, VALUE)); }, [open, on]);
+  const glow = useAnimatedStyle(() => ({ opacity: on.get(), transform: [{ scale: 0.85 + on.get() * 0.15 }] }));
   return (
+    <>
     <Svg width={88} height={122} viewBox="0 0 88 122" style={StyleSheet.absoluteFill}>
       <Defs>
         <RadialGradient id={`pg-${id}`} cx="50%" cy="58%" r="60%">
@@ -82,15 +93,20 @@ function Portal({ mark, next, id }: { mark: GateMark; next: boolean; id: string 
       {open && <Path d={ARCH} fill={core} opacity={0.18} transform="translate(44 64) scale(1.08) translate(-44 -64)" />}
       <Path d={ARCH} fill={colors.black} stroke={rim} strokeWidth={next || open ? 2.5 : 1.5} />
       <Path d={INNER} fill={mark === 'miss' ? colors.black : `url(#pg-${id})`} stroke={rim} strokeWidth={0.8} opacity={0.95} />
-      {open && [0, 1, 2].map(k => (
-        <Ellipse key={k} cx={44} cy={72} rx={22 - k * 7} ry={30 - k * 9} stroke={colors.white} strokeWidth={0.8} fill="none" opacity={0.5 - k * 0.12} />
-      ))}
       {mark === 'miss' && <Path d="M24 60 L64 104 M64 60 L24 104" stroke={colors.purpleSoft} strokeWidth={1.5} opacity={0.6} />}
     </Svg>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, glow]}>
+      <Svg width={88} height={122} viewBox="0 0 88 122">
+        {[0, 1, 2].map(k => (
+          <Ellipse key={k} cx={44} cy={72} rx={22 - k * 7} ry={30 - k * 9} stroke={colors.white} strokeWidth={0.8} fill="none" opacity={0.5 - k * 0.12} />
+        ))}
+      </Svg>
+    </Animated.View>
+    </>
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   portalBox: { width: 88, height: 122, alignItems: 'center', justifyContent: 'center', paddingTop: 18 },
   next: { flexDirection: 'row', alignItems: 'flex-end', gap: space.s3 },
   nextT: { fontFamily: font.display, fontSize: 22, color: colors.ink },
@@ -102,4 +118,4 @@ const s = StyleSheet.create({
   gAr: { fontSize: 18, fontWeight: '700', color: colors.white },
   gEn: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 1, color: colors.white2 },
   gMark: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, color: colors.blue },
-});
+}));

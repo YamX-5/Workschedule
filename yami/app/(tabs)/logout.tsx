@@ -7,10 +7,12 @@ import { Row, Screen, Segmented } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { HoldButton } from '@/src/ui/HoldButton';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { fmtMin, fmtTime } from '@/src/ui/format';
+import { useColors } from '@/src/ui/theme';
 
 export default function Logout() {
+  const colors = useColors();
   const p = useYami(s => s.profile);
   const setEnergy = useYami(s => s.setEnergy);
   const addUsage = useYami(s => s.addUsage);
@@ -74,6 +76,7 @@ export default function Logout() {
 }
 
 function Q({ n, label, children }: { n: number; label: string; children: React.ReactNode }) {
+  const colors = useColors();
   return (
     <View style={{ gap: space.s2 }}>
       <Row><T style={{ fontSize: 13, fontWeight: '600' }}>{label}</T><View style={{ flex: 1 }} /><T style={{ fontSize: 12, color: colors.white3 }}>{n} of 3</T></Row>

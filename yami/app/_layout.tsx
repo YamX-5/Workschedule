@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Michroma_400Regular } from '@expo-google-fonts/michroma';
 import { ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold } from '@expo-google-fonts/chakra-petch';
-import 'react-native-reanimated';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useYami } from '@/src/data/store';
 import { syncReminders } from '@/src/notify/reminders';
-import { colors } from '@/src/ui/tokens';
 import { CelebrationOverlay, GainToast } from '@/src/features/Rewards';
+import { useTheme } from '@/src/ui/theme';
 
 export { ErrorBoundary } from 'expo-router';
 export const unstable_settings = { anchor: '(tabs)' };
@@ -20,6 +21,12 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const [fonts] = useFonts({ Michroma_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
   const [hydrated, setHydrated] = useState(useYami.persist.hasHydrated());
+  const { c: colors, dark } = useTheme();
+  const reduced = useReducedMotion();
+  // Sheets slide up from the bottom on Android (iOS 'default' is the native sheet); everything fades under reduced motion.
+  const sheet = reduced ? 'fade' : Platform.OS === 'android' ? 'slide_from_bottom' : 'default';
+  // Web: paint the page behind the app too, so overscroll never flashes the old colour.
+  useEffect(() => { if (Platform.OS === 'web') document.body.style.backgroundColor = colors.black; }, [colors.black]);
 
   useEffect(() => {
     const unsub = useYami.persist.onFinishHydration(() => setHydrated(true));
@@ -47,14 +54,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.black }}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.black }, animation: 'fade' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="judgment" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="lock" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="protocol" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="dream" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="shop" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="lock" options={{ presentation: 'fullScreenModal', animation: sheet }} />
+        <Stack.Screen name="protocol" options={{ presentation: 'modal', animation: sheet }} />
+        <Stack.Screen name="dream" options={{ presentation: 'modal', animation: sheet }} />
+        <Stack.Screen name="shop" options={{ presentation: 'modal', animation: sheet }} />
       </Stack>
       <GainToast />
       <CelebrationOverlay />

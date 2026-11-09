@@ -1,45 +1,40 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { colors, font, space } from './tokens';
+import { StyleSheet, type ViewStyle } from 'react-native';
+import { font, space } from './tokens';
+import { useColors, type Palette } from './theme';
 import { T } from './Text';
-import { spring, tap } from './motion';
+import { Press } from './Press';
 
 type Variant = 'primary' | 'ghost' | 'outline' | 'seal' | 'dark' | 'danger';
-const AP = Animated.createAnimatedComponent(Pressable);
 
-/** Press scale 0.97, light haptic. Min 44pt tall. */
+/** Press scale 0.97 + light haptic on press-in (see Press). Min 44pt tall. */
 export function Button({ label, onPress, variant = 'primary', disabled, style, icon, testID, small }: {
   label: string; onPress?: () => void; variant?: Variant; disabled?: boolean; style?: ViewStyle; icon?: ReactNode; testID?: string; small?: boolean;
 }) {
-  const sc = useSharedValue(1);
-  const a = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
-  const v = VARIANTS[variant];
+  const v = variants(useColors())[variant];
   return (
-    <AP
+    <Press
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
-      onPressIn={() => { sc.value = withSpring(0.97, spring); }}
-      onPressOut={() => { sc.value = withSpring(1, spring); }}
-      onPress={() => { tap(); onPress?.(); }}
-      style={[s.base, small && s.small, v.box, disabled && { opacity: 0.4 }, a, style]}
+      onPress={onPress}
+      style={[s.base, small && s.small, v.box, disabled && { opacity: 0.4 }, style]}
     >
       {icon}
       <T style={[s.label, small && { fontSize: 11 }, { color: v.color }]}>{label}</T>
-    </AP>
+    </Press>
   );
 }
 
-const VARIANTS: Record<Variant, { box: ViewStyle; color: string }> = {
-  primary: { box: { backgroundColor: colors.white }, color: colors.black },
-  dark: { box: { backgroundColor: colors.black }, color: colors.white },
-  ghost: { box: { borderWidth: 1, borderColor: colors.blue2 }, color: colors.white },
-  outline: { box: { borderWidth: 1, borderColor: 'rgba(3,3,8,0.32)' }, color: colors.ink },
-  seal: { box: { backgroundColor: colors.blue }, color: colors.black },
-  danger: { box: { backgroundColor: colors.purple, borderWidth: 1, borderColor: colors.purpleSoft }, color: colors.white },
-};
+const variants = (c: Palette): Record<Variant, { box: ViewStyle; color: string }> => ({
+  primary: { box: { backgroundColor: c.white }, color: c.black },
+  dark: { box: { backgroundColor: c.black }, color: c.white },
+  ghost: { box: { borderWidth: 1, borderColor: c.blue2 }, color: c.white },
+  outline: { box: { borderWidth: 1, borderColor: c.inkEdge }, color: c.ink },
+  seal: { box: { backgroundColor: c.blue }, color: c.black },
+  danger: { box: { backgroundColor: c.purple, borderWidth: 1, borderColor: c.purpleSoft }, color: c.white },
+});
 
 const s = StyleSheet.create({
   base: { minHeight: 48, paddingHorizontal: space.s4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.s2 },

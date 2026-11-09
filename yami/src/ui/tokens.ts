@@ -1,22 +1,8 @@
-// Yami design tokens. Palette is exactly 4 hues (Plan 1 Global Constraints) plus alpha variants.
-export const colors = {
-  white: '#F2F0F7',
-  black: '#030308',
-  purple: '#2A1252',
-  purpleHi: '#6B3BD9',
-  blue: '#8FDCFF',
-  // alpha / tonal variants of the same 4 hues
-  white2: 'rgba(242,240,247,0.78)',
-  white3: 'rgba(242,240,247,0.6)',
-  line: 'rgba(242,240,247,0.14)',
-  glass: 'rgba(11,9,21,0.82)',
-  ink: '#030308',
-  ink2: 'rgba(3,3,8,0.66)',
-  inkLine: 'rgba(3,3,8,0.12)',
-  blue2: 'rgba(143,220,255,0.55)',
-  blue3: 'rgba(143,220,255,0.18)',
-  purpleSoft: '#9B78F2',
-} as const;
+// Yami design tokens. Colours live in ./theme (five themes, same roles); read them with useColors() so a theme switch re-renders.
+import { THEMES } from './theme';
+
+/** @deprecated Static darkness palette, kept so older code compiles. Use useColors() / themed() instead. */
+export const colors = THEMES.darkness.c;
 
 export const font = {
   display: 'Michroma_400Regular',

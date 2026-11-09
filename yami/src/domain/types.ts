@@ -4,6 +4,8 @@ export const STAT_IDS: StatId[] = ['deen', 'body', 'mind', 'craft', 'rest'];
 export type Preset = 'mercy' | 'balanced' | 'ruthless';
 export type AppCategory = 'watched' | 'work' | 'always';
 export type QuestType = 'check' | 'count' | 'timer';
+export type ThemeId = 'darkness' | 'sakura' | 'abyss' | 'ember' | 'jade';
+export const THEME_IDS: ThemeId[] = ['darkness', 'sakura', 'abyss', 'ember', 'jade'];
 
 export interface Quest {
   id: string;
@@ -49,6 +51,7 @@ export interface Protocol {
   city: string;
   coords: { lat: number; lng: number };
   calcMethod: string;
+  theme: ThemeId;
 }
 
 export interface Dream {

@@ -2,19 +2,22 @@ import { useState } from 'react';
 import { Share, View } from 'react-native';
 import { router } from 'expo-router';
 import { useYami, uid } from '@/src/data/store';
-import { STAT_IDS, type AppCategory, type Protocol, type Quest } from '@/src/domain/types';
+import { STAT_IDS, THEME_IDS, type AppCategory, type Protocol, type Quest } from '@/src/domain/types';
 import { JudgmentRules, QuestEditor } from '@/src/features/protocol';
 import { ModalScreen, Field } from '@/src/ui/ModalScreen';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { Row, Segmented } from '@/src/ui/parts';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { fmtDate, fmtMin } from '@/src/ui/format';
+import { THEMES, useColors, type Theme } from '@/src/ui/theme';
+import { Press } from '@/src/ui/Press';
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export default function ProtocolScreen() {
+  const colors = useColors();
   const p = useYami(s => s.profile);
   const st = useYami.getState();
   const [editing, setEditing] = useState<string | null>(null);
@@ -29,6 +32,12 @@ export default function ProtocolScreen() {
 
   return (
     <ModalScreen title="Protocol" kana="規約" right={<Button small label="Done" onPress={() => router.back()} />}>
+      <Window title="Theme" kana="テーマ" meta={THEMES[pr.theme].name}>
+        <View style={{ flexDirection: 'row', gap: space.s2 }} accessibilityRole="radiogroup" accessibilityLabel="Theme">
+          {THEME_IDS.map(id => <Swatch key={id} theme={THEMES[id]} on={pr.theme === id} onPress={() => up({ theme: id })} />)}
+        </View>
+      </Window>
+
       <Window title="Player" kana="プレイヤー">
         <View style={{ gap: space.s3 }}>
           <Field label="Name" value={p.name} onChangeText={name => st.setPlayer({ name })} />
@@ -152,6 +161,23 @@ export default function ProtocolScreen() {
   );
 }
 
+/** A tiny preview of a theme: its page colour with foreground, accent and deep-tone stripes. */
+function Swatch({ theme, on, onPress }: { theme: Theme; on: boolean; onPress: () => void }) {
+  const colors = useColors();
+  const t = theme.c;
+  return (
+    <Press testID={`theme-${theme.id}`} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`${theme.name} theme`}
+      onPress={onPress} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+      <View style={{ alignSelf: 'stretch', height: 64, padding: 6, gap: 4, justifyContent: 'flex-end', backgroundColor: t.black, borderWidth: on ? 2 : 1, borderColor: on ? colors.blue : colors.line }}>
+        <View style={{ height: 14, backgroundColor: t.purple }} />
+        <View style={{ height: 4, width: '80%', backgroundColor: t.white }} />
+        <View style={{ height: 4, width: '50%', backgroundColor: t.blue }} />
+      </View>
+      <T style={{ fontSize: 11, letterSpacing: 0.6, color: on ? colors.white : colors.white3 }} numberOfLines={1}>{theme.name}</T>
+    </Press>
+  );
+}
+
 function Stepper({ label, value, onMinus, onPlus }: { label: string; value: string; onMinus: () => void; onPlus: () => void }) {
   return (
     <Row>
@@ -164,6 +190,7 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
 }
 
 function Toggle({ label, sub, on, onPress }: { label: string; sub: string; on: boolean; onPress: () => void }) {
+  const colors = useColors();
   return (
     <Row>
       <View style={{ flex: 1 }}><T style={{ fontWeight: '600' }}>{label}</T><T style={{ fontSize: 12, color: colors.white3 }}>{sub}</T></View>

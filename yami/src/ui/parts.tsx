@@ -1,16 +1,20 @@
 // Small shared pieces: hero backdrop, screen shell, HUD, bars, segmented control, radar.
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Children, useEffect, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Line, LinearGradient, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { router } from 'expo-router';
-import { colors, font, space, TAB_BAR_H } from './tokens';
+import { font, space, TAB_BAR_H } from './tokens';
 import { T } from './Text';
-import { tap } from './motion';
+import { VALUE, enter } from './motion';
+import { Press } from './Press';
 import { useYami } from '../data/store';
+import { themed, useColors, useTheme } from './theme';
 
-/** Placeholder for the 3D world (Plan 3): purple horizon into black with a moon glow. */
+/** Placeholder for the 3D world (Plan 3): the theme's deep tone as a horizon into the page colour, with a moon glow. */
 export function HeroStage() {
+  const { c: colors, id } = useTheme();
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <Svg width="100%" height="100%" preserveAspectRatio="none">
@@ -21,28 +25,43 @@ export function HeroStage() {
             <Stop offset="1" stopColor={colors.black} />
           </LinearGradient>
           <RadialGradient id="moon" cx="70%" cy="22%" r="30%">
-            <Stop offset="0" stopColor={colors.white} stopOpacity="0.28" />
-            <Stop offset="1" stopColor={colors.white} stopOpacity="0" />
+            <Stop offset="0" stopColor={colors.glow} stopOpacity="0.28" />
+            <Stop offset="1" stopColor={colors.glow} stopOpacity="0" />
           </RadialGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#sky)" />
         <Rect width="100%" height="100%" fill="url(#moon)" />
       </Svg>
+      {id === 'sakura' && <Petals color={colors.blue} />}
     </View>
+  );
+}
+
+/** A few faint cherry-blossom petals across the sakura backdrop. [x, y, rotation, scale] in a 360x800 box. */
+const PETALS: [number, number, number, number][] = [[300, 70, 20, 1.3], [250, 150, -35, 0.9], [40, 230, 60, 1.1], [320, 380, 110, 0.8], [70, 520, -15, 1.2], [210, 640, 80, 0.9], [330, 760, 30, 1]];
+function Petals({ color }: { color: string }) {
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 360 800" preserveAspectRatio="xMidYMin slice" style={StyleSheet.absoluteFill}>
+      {PETALS.map(([x, y, r, k], i) => (
+        <Path key={i} d="M0 -9 C6 -9 8 -2 0 9 C-8 -2 -6 -9 -1.5 -9 L0 -6 Z" fill={color} opacity={i % 2 ? 0.12 : 0.2}
+          transform={'translate(' + x + ' ' + y + ') rotate(' + r + ') scale(' + k + ')'} />
+      ))}
+    </Svg>
   );
 }
 
 /** Screen shell: hero backdrop, HUD on top, scrollable content clear of the floating tab bar. */
 export function Screen({ children, scroll = true, hud = true }: { children: ReactNode; scroll?: boolean; hud?: boolean }) {
+  const colors = useColors();
   const ins = useSafeAreaInsets();
   const pad = { paddingTop: ins.top + space.s3, paddingBottom: ins.bottom + TAB_BAR_H + space.s6, paddingHorizontal: space.s4, gap: space.s4 };
   return (
     <View style={{ flex: 1, backgroundColor: colors.black }}>
       <HeroStage />
       {scroll ? (
-        <ScrollView contentContainerStyle={pad} showsVerticalScrollIndicator={false}>{hud && <Hud />}{children}</ScrollView>
+        <ScrollView contentContainerStyle={pad} showsVerticalScrollIndicator={false}>{hud && <Hud />}<Stagger>{children}</Stagger></ScrollView>
       ) : (
-        <View style={[{ flex: 1 }, pad]}>{hud && <Hud />}{children}</View>
+        <View style={[{ flex: 1 }, pad]}>{hud && <Hud />}<Stagger>{children}</Stagger></View>
       )}
       {/* keep scrolled content from running under the clock and battery icons */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: ins.top, backgroundColor: colors.black }} />
@@ -50,8 +69,14 @@ export function Screen({ children, scroll = true, hud = true }: { children: Reac
   );
 }
 
+/** Panels rise in one after another when a screen mounts (once; re-renders do not replay it). */
+export function Stagger({ children }: { children: ReactNode }) {
+  return <>{Children.toArray(children).map((ch, i) => <Animated.View key={i} entering={enter(i)}>{ch}</Animated.View>)}</>;
+}
+
 export function Hud() {
-  const p = useYami(s => s.profile);
+  const s = useS();
+  const p = useYami(st => st.profile);
   return (
     <View style={s.hud}>
       <View style={s.kj}><T style={s.kjT}>闇</T></View>
@@ -60,21 +85,24 @@ export function Hud() {
         <T v="label" numberOfLines={1}>Day <T v="num" style={{ fontSize: 12 }}>{Math.min(p.day, 66)}</T> / 66</T>
       </View>
       <View style={{ flex: 1 }} />
-      <Pressable accessibilityRole="button" accessibilityLabel={`Honor ${p.honor}`} style={s.honor} onPress={() => { tap(); router.push('/path'); }}>
+      <Press accessibilityRole="button" accessibilityLabel={`Honor ${p.honor}`} style={s.honor} onPress={() => router.push('/path')}>
         <Shield />
         <T v="num" style={{ fontSize: 13 }}>{p.honor}</T>
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Open protocol settings" style={s.ibtn} onPress={() => { tap(); router.push('/protocol'); }}>
+      </Press>
+      <Press accessibilityRole="button" accessibilityLabel="Open protocol settings" style={s.ibtn} onPress={() => router.push('/protocol')}>
         <Gear />
-      </Pressable>
+      </Press>
     </View>
   );
 }
 
-export const Shield = ({ c = colors.blue, w = 18 }: { c?: string; w?: number }) => (
-  <Svg width={w} height={w * 1.1} viewBox="0 0 20 22"><Polygon points="10,1 19,4 19,11 10,21 1,11 1,4" fill={c} /></Svg>
-);
-const Gear = () => (
+export function Shield({ c, w = 18 }: { c?: string; w?: number }) {
+  const colors = useColors();
+  return <Svg width={w} height={w * 1.1} viewBox="0 0 20 22"><Polygon points="10,1 19,4 19,11 10,21 1,11 1,4" fill={c ?? colors.blue} /></Svg>;
+}
+function Gear() {
+  const colors = useColors();
+  return (
   <Svg width={20} height={20} viewBox="0 0 20 20">
     <Circle cx="10" cy="10" r="3" stroke={colors.white} strokeWidth="1.6" fill="none" />
     {[0, 45, 90, 135, 180, 225, 270, 315].map(a => {
@@ -82,16 +110,21 @@ const Gear = () => (
       return <Line key={a} x1={10 + Math.cos(r) * 5.5} y1={10 + Math.sin(r) * 5.5} x2={10 + Math.cos(r) * 8.5} y2={10 + Math.sin(r) * 8.5} stroke={colors.white} strokeWidth="2" />;
     })}
   </Svg>
-);
+  );
+}
 
-/** A thin progress bar. value 0..1. Animated via scaleX (transform only). */
-export function Bar({ value, color = colors.blue, track = colors.line, h = 4, style, marks }: {
+/** A thin progress bar. value 0..1. Changes glide (ease-out scaleX from the left edge, transform only). */
+export function Bar({ value, color, track, h = 4, style, marks }: {
   value: number; color?: string; track?: string; h?: number; style?: ViewStyle; marks?: number[];
 }) {
+  const colors = useColors();
   const v = Math.max(0, Math.min(1, value));
+  const sx = useSharedValue(v);
+  useEffect(() => { sx.set(withTiming(v, VALUE)); }, [v, sx]);
+  const fill = useAnimatedStyle(() => ({ transform: [{ scaleX: sx.get() }] }));
   return (
-    <View style={[{ height: h, backgroundColor: track, overflow: 'hidden' }, style]}>
-      <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v * 100}%`, backgroundColor: color }} />
+    <View style={[{ height: h, backgroundColor: track ?? colors.line, overflow: 'hidden' }, style]}>
+      <Animated.View style={[{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, transformOrigin: 'left', backgroundColor: color ?? colors.blue }, fill]} />
       {marks?.map(m => <View key={m} style={{ position: 'absolute', top: 0, bottom: 0, left: `${m * 100}%`, width: 1, backgroundColor: colors.black }} />)}
     </View>
   );
@@ -100,15 +133,17 @@ export function Bar({ value, color = colors.blue, track = colors.line, h = 4, st
 export function Segmented<V extends string | number>({ options, value, onChange, light, label }: {
   options: { v: V; label: string }[]; value: V | undefined; onChange: (v: V) => void; light?: boolean; label?: string;
 }) {
+  const colors = useColors();
+  const s = useS();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} style={[s.seg, light && { backgroundColor: colors.inkLine, borderColor: colors.inkLine }]}>
       {options.map(o => {
         const on = o.v === value;
         return (
-          <Pressable key={String(o.v)} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { tap(); onChange(o.v); }}
+          <Press key={String(o.v)} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => onChange(o.v)}
             style={[s.segB, on && { backgroundColor: light ? colors.black : colors.white }]}>
             <T style={{ fontFamily: font.textSemi, fontSize: 14, color: on ? (light ? colors.white : colors.black) : light ? colors.ink2 : colors.white2 }}>{o.label}</T>
-          </Pressable>
+          </Press>
         );
       })}
     </View>
@@ -117,6 +152,7 @@ export function Segmented<V extends string | number>({ options, value, onChange,
 
 /** Radar of 3–5 stats: today (solid) vs yesterday (dashed). */
 export function Radar({ stats, yesterday, size = 168 }: { stats: { name: string; level: number }[]; yesterday?: number[]; size?: number }) {
+  const colors = useColors();
   const n = stats.length, c = size / 2, R = size / 2 - 30;
   const max = Math.max(10, ...stats.map(s => s.level), ...(yesterday ?? []));
   const pt = (i: number, r: number) => {
@@ -145,12 +181,12 @@ export function Row({ children, style }: { children: ReactNode; style?: ViewStyl
   return <View style={[{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }, style]}>{children}</View>;
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   hud: { flexDirection: 'row', alignItems: 'center', gap: space.s2, minHeight: 44 },
   kj: { width: 40, height: 40, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   kjT: { color: colors.black, fontSize: 24, fontFamily: font.textBold },
   honor: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.blue2, backgroundColor: colors.glass },
   ibtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.glass },
-  seg: { flexDirection: 'row', gap: 4, padding: 4, backgroundColor: 'rgba(3,3,8,0.55)', borderWidth: 1, borderColor: colors.line },
+  seg: { flexDirection: 'row', gap: 4, padding: 4, backgroundColor: colors.field, borderWidth: 1, borderColor: colors.line },
   segB: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-});
+}));
