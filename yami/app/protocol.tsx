@@ -161,6 +161,7 @@ export default function ProtocolScreen() {
             setBackupMsg(st.importProfile(backup.trim()) ? 'Restored.' : 'That is not a Yami backup. Nothing changed.');
           }} />
           {backupMsg ? <T style={{ fontSize: 12, color: colors.blue }}>{backupMsg}</T> : null}
+          <Button small variant="ghost" label="Replay tutorial" testID="replay-tutorial" onPress={() => { st.setTutorialDone(false); router.back(); }} />
           <Button small variant="ghost" label="Replay intro" onPress={() => router.push('/onboarding')} />
           {confirm === 'fall'
             ? <Button small variant="danger" label="Confirm: fall to day 1" onPress={() => { st.triggerFall(); setConfirm(null); }} />

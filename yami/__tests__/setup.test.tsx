@@ -2,12 +2,14 @@ jest.mock('@react-native-async-storage/async-storage', () => require('@react-nat
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), replace: jest.fn(), push: jest.fn(), navigate: jest.fn(), canGoBack: () => true }, useLocalSearchParams: () => ({}) }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { migrate } from '../src/data/migrate';
 import { useYami } from '../src/data/store';
 import { seededProfile } from '../src/domain/defaults';
 import Onboarding from '../app/onboarding';
+import { Tutorial, tutorialSteps } from '../src/features/Tutorial';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const S = () => useYami.getState();
 beforeEach(() => S().reset());
@@ -77,5 +79,37 @@ describe('onboarding screen', () => {
     expect([p.stats.deen.name, p.stats.body.name, p.stats.mind.name, p.stats.craft.enabled]).toEqual(['FAITH', 'BODY', 'MIND', false]);
     expect(p.quests.map(q => q.title)).toEqual(['Salah', 'Walk 30 minutes']);
     expect(router.replace).toHaveBeenCalledWith('/');
+  });
+});
+
+describe('tutorial', () => {
+  test('shows the gates step only when prayers are tracked', () => {
+    S().setupProfile({ names: ['A', 'B', 'C', '', ''], quests: [], prayers: false });
+    expect(tutorialSteps(S().profile).map(x => x.id)).toEqual(['quests', 'dreams', 'path', 'judgment', 'phone']);
+    S().setPrayers(true);
+    expect(tutorialSteps(S().profile)).toHaveLength(6);
+  });
+
+  test('runs after onboarding, walks every step, and saves tutorialDone', async () => {
+    S().setupProfile({ names: ['A', 'B', 'C', '', ''], quests: [], prayers: true });
+    S().finishOnboarding();
+    await render(<Tutorial />);
+    const titles: string[] = [];
+    for (let k = 0; k < 6; k++) {
+      titles.push(screen.getByTestId('tut-title').props.children);
+      await fireEvent.press(screen.getByTestId('tut-next'));
+    }
+    expect(titles).toEqual(['Quests', 'Gates', 'Dreams', 'Path', 'Judgment at Fajr', 'The phone cap']);
+    expect(screen.queryByTestId('tutorial')).toBeNull();
+    expect(S().profile.tutorialDone).toBe(true);
+    expect(await AsyncStorage.getItem('yami.profile.v1')).toContain('"tutorialDone":true');
+  });
+
+  test('Skip ends it too, and it stays hidden before onboarding', async () => {
+    await render(<Tutorial />);
+    expect(screen.queryByTestId('tutorial')).toBeNull(); // not onboarded yet
+    await act(async () => { S().finishOnboarding(); });
+    await fireEvent.press(screen.getByTestId('tut-skip'));
+    expect(S().profile.tutorialDone).toBe(true);
   });
 });
