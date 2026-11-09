@@ -53,10 +53,10 @@ export function QuestEditor({ quest, statName, stats = STAT_IDS, onSave, onDelet
   };
   return (
     <View style={{ gap: space.s3, padding: space.s3, borderWidth: 1, borderColor: colors.blue2 }}>
-      <Field label="Quest" value={q.title} onChangeText={title => { setQ({ ...q, title }); setErr(''); }} error={err === 'Name the quest' ? err : undefined} testID="qe-title" />
+      <Field label="Quest" value={q.title} placeholder="e.g. Read 10 pages" onChangeText={title => { setQ({ ...q, title }); setErr(''); }} error={err === 'Name the quest' ? err : undefined} testID="qe-title" />
       <T v="label">Stat</T>
       <Segmented label="Stat" value={q.stat} onChange={stat => setQ({ ...q, stat })} options={stats.map(k => ({ v: k, label: statName(k).slice(0, 6) }))} />
-      <T style={{ fontSize: 12, color: colors.white2 }}>The stat this quest levels up. Rename or switch off stats in the Stats section above.</T>
+      <T style={{ fontSize: 12, color: colors.white2 }}>The stat this quest levels up. Rename or switch off stats in the Stats section.</T>
       <T v="label">Type</T>
       <Segmented<QuestType> label="Type" value={q.type} onChange={type => setQ({ ...q, type })} options={[{ v: 'check', label: 'Check' }, { v: 'count', label: 'Count' }, { v: 'timer', label: 'Timer' }]} />
       <T testID="qe-type-help" style={{ fontSize: 12, color: colors.white2 }}>{TYPE_HELP[q.type]}</T>

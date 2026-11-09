@@ -90,11 +90,8 @@ export default function Onboarding() {
                 </Row>
                 {drafts.map((d, n) => (
                   <View key={n} style={{ gap: space.s2, paddingTop: n ? space.s4 : 0, borderTopWidth: n ? 1 : 0, borderTopColor: colors.line }}>
-                    <Row>
-                      <T v="label" style={{ flex: 1 }}>Quest {n + 1}</T>
-                      {n > 0 && <Button small variant="ghost" label="Remove" onPress={() => setDrafts(drafts.filter((_, k) => k !== n))} />}
-                    </Row>
-                    <QuestDraftEditor draft={d} stats={named} statName={statName} placeholder={QUEST_EXAMPLES[n]} testID={`onb-quest-${n}`}
+                    {n > 0 && <Button small variant="ghost" label="Remove" style={{ alignSelf: 'flex-end' }} onPress={() => setDrafts(drafts.filter((_, k) => k !== n))} />}
+                    <QuestDraftEditor label={`Quest ${n + 1}`} draft={d} stats={named} statName={statName} placeholder={QUEST_EXAMPLES[n]} testID={`onb-quest-${n}`}
                       onChange={nd => { const x = [...drafts]; x[n] = nd; setDrafts(x); setErr(''); }} />
                   </View>
                 ))}

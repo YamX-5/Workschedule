@@ -144,7 +144,7 @@ export function DreamWizard() {
               {!p.quests.length && !pending.length && <T style={{ fontSize: 13, color: colors.white3 }}>You have no quests yet. Add one that moves this dream forward.</T>}
               {draft ? (
                 <View style={{ gap: space.s3, padding: space.s3, borderWidth: 1, borderColor: colors.blue2 }}>
-                  <QuestDraftEditor draft={draft} onChange={setDraft} stats={stats} statName={k => statLabel(p, k)} placeholder={`e.g. ${examples[0]}`} testID="dw-new-quest" />
+                  <QuestDraftEditor draft={draft} onChange={setDraft} stats={stats} statName={k => statLabel(p, k)} placeholder="e.g. Practice 20 minutes" testID="dw-new-quest" />
                   <Row>
                     <Button small label="Add quest" style={{ flex: 1 }} testID="dw-add-quest" disabled={!draft.title.trim()}
                       onPress={() => { setPending([...pending, draft]); setDraft(null); }} />
@@ -193,7 +193,8 @@ export function DreamDetail({ dream, onEdit }: { dream: Dream; onEdit: () => voi
         <T style={{ fontFamily: font.textSemi, fontSize: 20, color: colors.white }} testID="dd-title">{dream.title}</T>
         {dream.why ? <T style={{ fontSize: 13, color: colors.white3, marginTop: 4 }}>Why: {dream.why}</T> : null}
         <Row style={{ alignItems: 'baseline', marginTop: space.s4 }}>
-          <T v="num" style={{ fontSize: 44, lineHeight: 52 }} testID="dd-pct">{pct}%</T>
+          <T v="num" style={{ fontSize: 44, lineHeight: 52 }} testID="dd-pct">{pct}</T>
+          <T style={{ fontFamily: font.textSemi, fontSize: 26, color: colors.white, marginLeft: -4 }}>%</T>
           <T style={{ color: colors.white3 }}>{pr.done} of {pr.total} milestones</T>
         </Row>
         <Bar value={pr.value} h={10} color={colors.blue} style={{ marginTop: space.s2 }} />

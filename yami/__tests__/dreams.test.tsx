@@ -48,7 +48,7 @@ test('detail shows progress, the next milestone, pace in words and the one-a-day
   S().addDream({ id: 'd', title: 'Run a 5K', why: '', stat: 'body', createdAt: made, active: true,
     milestones: [{ id: 'a', title: 'Run 1 km', doneAt: made + 86400e3 }, { id: 'b', title: 'Run 3 km' }] });
   await render(<DreamDetail dream={S().profile.dreams[0]} onEdit={jest.fn()} />);
-  expect(screen.getByTestId('dd-pct').props.children).toEqual([50, '%']);
+  expect(screen.getByTestId('dd-pct').props.children).toBe(50);
   expect(screen.getByTestId('dd-next').props.children).toBe('Next milestone: Run 3 km');
   expect(screen.getByTestId('dd-rule')).toBeTruthy();
   expect(screen.getByTestId('dd-pace').props.children).toMatch(/No target date/);

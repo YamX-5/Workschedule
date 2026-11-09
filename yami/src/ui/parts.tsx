@@ -146,20 +146,27 @@ export function Dots({ n, i }: { n: number; i: number }) {
 }
 
 /**
- * A slow, small breath (scale 1 -> 1.02) on the one thing to do next, e.g. an empty state's first button.
- * Only for rare screens: never on something seen many times a day. Still under reduced motion.
+ * A slow breathing ring (accent outline, opacity 0 -> 0.9) around the one thing to do next, e.g. an empty
+ * state's first button. The button itself never dims, so it can't read as disabled. Only on rare screens,
+ * never on something seen many times a day. Still under reduced motion.
  */
 export function Pulse({ children, on = true }: { children: ReactNode; on?: boolean }) {
+  const colors = useColors();
   const reduced = useReducedMotion();
-  const k = useSharedValue(1);
+  const k = useSharedValue(0);
   useEffect(() => {
-    if (!on || reduced) { k.set(1); return; }
+    if (!on || reduced) { k.set(0); return; }
     const half = { duration: 1100, easing: EASE_IN_OUT };
-    k.set(withRepeat(withSequence(withTiming(1.02, half), withTiming(1, half)), -1));
+    k.set(withRepeat(withSequence(withTiming(0.9, half), withTiming(0, half)), -1));
     return () => cancelAnimation(k);
   }, [on, reduced, k]);
-  const a = useAnimatedStyle(() => ({ transform: [{ scale: k.get() }] }));
-  return <Animated.View style={a}>{children}</Animated.View>;
+  const a = useAnimatedStyle(() => ({ opacity: k.get() }));
+  return (
+    <View>
+      {children}
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: -4, left: -4, right: -4, bottom: -4, borderWidth: 2, borderColor: colors.blue }, a]} />
+    </View>
+  );
 }
 
 export function Segmented<V extends string | number>({ options, value, onChange, light, label }: {

@@ -19,17 +19,21 @@ import { themed, useColors } from '@/src/ui/theme';
 const TAB_COUNT = 5;
 type Route = '/' | '/gates' | '/path';
 const TAB_OF: Record<Route, number> = { '/': 0, '/gates': 1, '/path': 2 };
-export interface CoachStep { id: string; title: string; body: string; route: Route; point: boolean }
+/** Where the card sits: above a tab with a caret, under the Corruption panel, or centred. */
+type Place = 'tab' | 'corruption' | 'center';
+export interface CoachStep { id: string; title: string; body: string; route: Route; place: Place }
+// ponytail: fixed offset under the HUD + Corruption panel (~200pt tall); measure it with onLayout if that panel changes.
+const UNDER_CORRUPTION = 286;
 
 export function tutorialSteps(p: Profile): CoachStep[] {
   const prayers = p.quests.some(q => q.id === 'salah');
   return [
-    { id: 'quests', route: '/', point: true, title: 'Quests', body: `Your daily quests live here on Status. Tap Done, or +1 on counted ones, and the XP lands right away. You can earn up to ${DAILY_XP_CAP} XP a day.` },
-    ...(prayers ? [{ id: 'gates', route: '/gates' as Route, point: true, title: 'Gates', body: 'Mark each prayer on time, late or missed. Every mark reports to your Salah quest.' }] : []),
-    { id: 'dreams', route: '/', point: true, title: 'Dreams', body: 'A Dream is a long goal. Link quests to it and each clear fills the bar toward the next milestone. Add one from the Dreams card on Status.' },
-    { id: 'path', route: '/path', point: true, title: 'Path', body: 'Your character evolves every 10 levels. Path shows your form, streak, records and the reward shop.' },
-    { id: 'judgment', route: '/', point: false, title: 'Judgment at Fajr', body: 'Every morning at Fajr, yesterday is judged. Unreported quests cost XP and Honor. An honest Didn’t costs nothing. Honesty beats perfection.' },
-    { id: 'phone', route: '/', point: true, title: 'The phone cap', body: `Corruption counts your time on watched apps against a daily cap of ${fmtMin(p.protocol.capMin)}. Log time with +15m, and tap Urge when you feel the pull.` },
+    { id: 'quests', route: '/', place: 'tab', title: 'Quests', body: `Your daily quests live here on Status. Tap Done, or +1 on counted ones, and the XP lands right away. You can earn up to ${DAILY_XP_CAP} XP a day.` },
+    ...(prayers ? [{ id: 'gates', route: '/gates' as Route, place: 'tab' as Place, title: 'Gates', body: 'Mark each prayer on time, late or missed. Every mark reports to your Salah quest.' }] : []),
+    { id: 'dreams', route: '/', place: 'tab', title: 'Dreams', body: 'A Dream is a long goal. Link quests to it and each clear fills the bar toward the next milestone. Add one from the Dreams card on Status.' },
+    { id: 'path', route: '/path', place: 'tab', title: 'Path', body: 'Your character evolves every 10 levels. Path shows your form, streak, records and the reward shop.' },
+    { id: 'judgment', route: '/', place: 'center', title: 'Judgment at Fajr', body: 'Every morning at Fajr, yesterday is judged. Unreported quests cost XP and Honor. An honest Didn’t costs nothing. Honesty beats perfection.' },
+    { id: 'phone', route: '/', place: 'corruption', title: 'The phone cap', body: `Corruption counts your time on watched apps against a daily cap of ${fmtMin(p.protocol.capMin)}. Log time with +15m, and tap Urge when you feel the pull.` },
   ];
 }
 
@@ -61,9 +65,9 @@ export function Tutorial() {
   return (
     <View style={StyleSheet.absoluteFill} testID="tutorial">
       <View style={[StyleSheet.absoluteFill, s.scrim]} />
-      {step.point && <View pointerEvents="none" style={[s.ring, { left: tabLeft - 3, width: tabW + 6, bottom: barBottom + 3, height: TAB_BAR_H - 6 }]} />}
+      {step.place === 'tab' && <View pointerEvents="none" style={[s.ring, { left: tabLeft - 3, width: tabW + 6, bottom: barBottom + 3, height: TAB_BAR_H - 6 }]} />}
       <Animated.View key={step.id} entering={Platform.OS === 'web' ? undefined : CARD_IN}
-        style={[s.card, step.point ? { bottom: cardBottom } : { top: '30%' }]} accessibilityViewIsModal>
+        style={[s.card, step.place === 'tab' ? { bottom: cardBottom } : step.place === 'corruption' ? { top: ins.top + UNDER_CORRUPTION } : { top: '30%' }]} accessibilityViewIsModal>
         <Row>
           <T v="label" style={{ color: colors.blue, flex: 1 }}>Tutorial · {i + 1} / {steps.length}</T>
           <Dots n={steps.length} i={i} />
@@ -77,7 +81,8 @@ export function Tutorial() {
             <Button small label={last ? 'Got it' : 'Next'} testID="tut-next" onPress={() => (last ? close() : go(i + 1))} />
           </Row>
         </Row>
-        {step.point && <View pointerEvents="none" style={[s.caret, { left: tabLeft + tabW / 2 - space.s4 - 8 }]} />}
+        {step.place === 'tab' && <View pointerEvents="none" style={[s.caret, { left: tabLeft + tabW / 2 - space.s4 - 8 }]} />}
+        {step.place === 'corruption' && <View pointerEvents="none" style={s.caretUp} />}
       </Animated.View>
     </View>
   );
@@ -87,5 +92,6 @@ const useS = themed(colors => ({
   scrim: { backgroundColor: colors.scrim, opacity: 0.7 },
   ring: { position: 'absolute', borderWidth: 2, borderColor: colors.blue },
   card: { position: 'absolute', left: space.s4, right: space.s4, padding: space.s4, backgroundColor: colors.bar, borderWidth: 1, borderColor: colors.blue2 },
+  caretUp: { position: 'absolute', top: -8, left: '50%', marginLeft: -7, width: 14, height: 14, backgroundColor: colors.bar, borderLeftWidth: 1, borderTopWidth: 1, borderColor: colors.blue2, transform: [{ rotate: '45deg' }] },
   caret: { position: 'absolute', bottom: -8, width: 14, height: 14, backgroundColor: colors.bar, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.blue2, transform: [{ rotate: '45deg' }] },
 }));

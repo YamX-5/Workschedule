@@ -18,14 +18,14 @@ const TYPE_LINE: Record<QuestType, string> = {
   timer: 'Do it for a set number of minutes, then tap Done.',
 };
 
-export function QuestDraftEditor({ draft, onChange, stats, statName, placeholder, testID }: {
-  draft: Draft; onChange: (d: Draft) => void; stats: StatId[]; statName: (k: StatId) => string; placeholder: string; testID?: string;
+export function QuestDraftEditor({ draft, onChange, stats, statName, placeholder, testID, label = 'Quest' }: {
+  label?: string; draft: Draft; onChange: (d: Draft) => void; stats: StatId[]; statName: (k: StatId) => string; placeholder: string; testID?: string;
 }) {
   const colors = useColors();
   const stat = stats.includes(draft.stat) ? draft.stat : stats[0];
   return (
     <View style={{ gap: space.s2 }}>
-      <Field label="Quest" value={draft.title} placeholder={placeholder} maxLength={40} testID={testID}
+      <Field label={label} value={draft.title} placeholder={placeholder} maxLength={40} testID={testID}
         onChangeText={title => onChange({ ...draft, title })} />
       <T v="label">Levels up</T>
       <Segmented label="Stat" value={stat} onChange={s => onChange({ ...draft, stat: s })} options={stats.map(k => ({ v: k, label: statName(k).slice(0, 6) }))} />
