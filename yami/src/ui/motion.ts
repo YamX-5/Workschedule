@@ -4,6 +4,8 @@ import * as Haptics from 'expo-haptics';
 export const spring = { damping: 18, stiffness: 220 } as const;
 /** Strong ease-out for UI (enter, value changes). Never ease-in on UI. */
 export const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+/** On-screen movement and loops (ease-in-out). */
+export const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
 /** Press feedback: fast, felt on press-in. */
 export const PRESS = { duration: 120, easing: EASE_OUT } as const;
 /** Value changes (bars, chips): short ease-out. */

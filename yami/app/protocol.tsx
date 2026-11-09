@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Share, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useYami, uid } from '@/src/data/store';
 import { STAT_IDS, THEME_IDS, type AppCategory, type Protocol, type Quest } from '@/src/domain/types';
 import { JudgmentRules, QuestEditor } from '@/src/features/protocol';
@@ -12,6 +12,7 @@ import { T } from '@/src/ui/Text';
 import { space } from '@/src/ui/tokens';
 import { fmtDate, fmtMin } from '@/src/ui/format';
 import { THEMES, useColors, type Theme } from '@/src/ui/theme';
+import { activeStats, statLabel } from '@/src/domain/progress';
 import { Press } from '@/src/ui/Press';
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -20,18 +21,48 @@ export default function ProtocolScreen() {
   const colors = useColors();
   const p = useYami(s => s.profile);
   const st = useYami.getState();
-  const [editing, setEditing] = useState<string | null>(null);
+  const { add } = useLocalSearchParams<{ add?: string }>();
+  const [editing, setEditing] = useState<string | null>(add ? 'new' : null);
+  const [prayerMsg, setPrayerMsg] = useState('');
+  const hasPrayers = p.quests.some(q => q.id === 'salah');
   const [confirm, setConfirm] = useState<'reset' | 'fall' | 'restart' | null>(null);
   const [statMsg, setStatMsg] = useState('');
   const [backup, setBackup] = useState('');
   const [backupMsg, setBackupMsg] = useState('');
   const pr = p.protocol;
   const up = (patch: Partial<Protocol>) => st.updateProtocol(patch);
-  const statName = (k: (typeof STAT_IDS)[number]) => p.stats[k].name;
-  const blank: Quest = { id: '', title: '', stat: 'mind', xp: 20, type: 'check', target: 1, days: [0, 1, 2, 3, 4, 5, 6], deadline: '23:00' };
+  const statName = (k: (typeof STAT_IDS)[number]) => statLabel(p, k);
+  const blank: Quest = { id: '', title: '', stat: activeStats(p)[0] ?? 'mind', xp: 20, type: 'check', target: 1, days: [0, 1, 2, 3, 4, 5, 6], deadline: '23:00' };
+
+  const questsWin = (
+      <Window title="Quests" kana="クエスト">
+        <View style={{ gap: space.s2 }}>
+          <Toggle label="Track the 5 daily prayers" sub="A Salah quest you mark prayer by prayer on the Gates tab." on={hasPrayers}
+            onPress={() => setPrayerMsg(st.setPrayers(!hasPrayers) ? '' : 'You have 10 quests already. Remove one first.')} />
+          {prayerMsg ? <T style={{ fontSize: 12, color: colors.purpleSoft }}>{prayerMsg}</T> : null}
+          {!p.quests.length && editing !== 'new' && <T style={{ fontSize: 13, color: colors.white3 }}>No quests yet. Add your first one below.</T>}
+          {p.quests.map(q => editing === q.id
+            ? <QuestEditor key={q.id} quest={q} statName={statName} stats={activeStats(p)} onCancel={() => setEditing(null)}
+                onSave={nq => { st.upsertQuest(nq); setEditing(null); }} onDelete={() => { st.deleteQuest(q.id); setEditing(null); }} />
+            : (
+              <Row key={q.id} style={{ minHeight: 48, borderTopWidth: 1, borderTopColor: colors.line }}>
+                <View style={{ flex: 1 }}>
+                  <T>{q.title}</T>
+                  <T style={{ fontSize: 12, color: colors.white3 }}>+{q.xp} {statName(q.stat)} · {q.type}{q.type !== 'check' ? ` ${q.target}` : ''} · by {q.deadline}</T>
+                </View>
+                <Button small variant="ghost" label="Edit" onPress={() => setEditing(q.id)} />
+              </Row>
+            ))}
+          {editing === 'new'
+            ? <QuestEditor quest={blank} statName={statName} stats={activeStats(p)} onCancel={() => setEditing(null)} onSave={nq => { st.upsertQuest({ ...nq, id: uid() }); setEditing(null); }} />
+            : <Button small variant="ghost" label="Add quest" onPress={() => setEditing('new')} />}
+        </View>
+      </Window>
+  );
 
   return (
     <ModalScreen title="Protocol" kana="規約" right={<Button small label="Done" onPress={() => router.back()} />}>
+      {add ? questsWin : null}
       <Window title="Theme" kana="テーマ" meta={THEMES[pr.theme].name}>
         <View style={{ flexDirection: 'row', gap: space.s2 }} accessibilityRole="radiogroup" accessibilityLabel="Theme">
           {THEME_IDS.map(id => <Swatch key={id} theme={THEMES[id]} on={pr.theme === id} onPress={() => up({ theme: id })} />)}
@@ -68,9 +99,9 @@ export default function ProtocolScreen() {
 
       <Window title="Stats" kana="能力値" meta="at least 3 on">
         <View style={{ gap: space.s3 }}>
-          {STAT_IDS.map(k => (
+          {STAT_IDS.map((k, n) => (
             <Row key={k}>
-              <View style={{ flex: 1 }}><Field label={k.toUpperCase()} value={p.stats[k].name} onChangeText={n => st.renameStat(k, n.toUpperCase().slice(0, 10))} /></View>
+              <View style={{ flex: 1 }}><Field label={`Stat ${n + 1}`} placeholder="Name it" value={p.stats[k].name} onChangeText={n => st.renameStat(k, n.toUpperCase().slice(0, 10))} /></View>
               <Button small variant={p.stats[k].enabled ? 'seal' : 'ghost'} label={p.stats[k].enabled ? 'On' : 'Off'}
                 onPress={() => setStatMsg(st.toggleStat(k) ? '' : 'Keep at least 3 stats on.')} style={{ marginTop: 20 }} />
             </Row>
@@ -79,25 +110,7 @@ export default function ProtocolScreen() {
         </View>
       </Window>
 
-      <Window title="Quests" kana="クエスト">
-        <View style={{ gap: space.s2 }}>
-          {p.quests.map(q => editing === q.id
-            ? <QuestEditor key={q.id} quest={q} statName={statName} onCancel={() => setEditing(null)}
-                onSave={nq => { st.upsertQuest(nq); setEditing(null); }} onDelete={() => { st.deleteQuest(q.id); setEditing(null); }} />
-            : (
-              <Row key={q.id} style={{ minHeight: 48, borderTopWidth: 1, borderTopColor: colors.line }}>
-                <View style={{ flex: 1 }}>
-                  <T>{q.title}</T>
-                  <T style={{ fontSize: 12, color: colors.white3 }}>+{q.xp} {statName(q.stat)} · {q.type}{q.type !== 'check' ? ` ${q.target}` : ''} · by {q.deadline}</T>
-                </View>
-                <Button small variant="ghost" label="Edit" onPress={() => setEditing(q.id)} />
-              </Row>
-            ))}
-          {editing === 'new'
-            ? <QuestEditor quest={blank} statName={statName} onCancel={() => setEditing(null)} onSave={nq => { st.upsertQuest({ ...nq, id: uid() }); setEditing(null); }} />
-            : <Button small variant="ghost" label="Add quest" onPress={() => setEditing('new')} />}
-        </View>
-      </Window>
+      {!add && questsWin}
 
       <Window title="Judgment" kana="審判">
         <View style={{ gap: space.s3 }}>

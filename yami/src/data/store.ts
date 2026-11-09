@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, Report, ReportKind, Reward, StatId, Task } from '../domain/types';
-import { newProfile } from '../domain/defaults';
+import { STAT_IDS, type Dream, type GateMark, type Profile, type Protocol, type Quest, type RecordId, type Report, type ReportKind, type Reward, type StatId, type Task } from '../domain/types';
+import { newProfile, prayerQuest } from '../domain/defaults';
 import { addDays, atOnDay, dayKey } from '../domain/time';
 import { instantReward, judgeDay, shardsForXp, verdictFor } from '../domain/judgment';
 import { MAX_QUESTS, TASK_XP, capGrant, sanitizeQuest } from '../domain/economy';
@@ -61,6 +61,14 @@ interface YamiState {
   toggleStat(id: StatId): boolean;
   setPlayer(patch: Partial<Pick<Profile, 'name' | 'title'>>): void;
   finishOnboarding(now?: Date): void;
+  /**
+   * First-run setup: the player's own stat names (one per slot, blank = switched off; at least 3),
+   * their first quests, and whether to track the 5 prayers (quest id 'salah'). False if under 3 names.
+   */
+  setupProfile(setup: { names: string[]; quests: Omit<Quest, 'id'>[]; prayers: boolean }): boolean;
+  /** Add or remove the prayer quest (id 'salah'). False when adding would pass MAX_QUESTS. */
+  setPrayers(on: boolean): boolean;
+  setTutorialDone(done: boolean): void;
   addDream(d: Dream): boolean;
   updateDream(d: Dream): void;
   completeMilestone(dreamId: string, milestoneId: string, now?: Date): void;
@@ -236,6 +244,31 @@ export const useYami = create<YamiState>()(
           patch(p => ({ ...p, onboarded: true, startKey: p.startKey || todayKey(p, now) }));
         },
 
+        setupProfile({ names, quests, prayers }) {
+          const clean = STAT_IDS.map((_, i) => (names[i] ?? '').trim().toUpperCase().slice(0, 10));
+          const on = STAT_IDS.filter((_, i) => clean[i]);
+          if (on.length < 3) return false;
+          const p = get().profile;
+          const stats = { ...p.stats };
+          STAT_IDS.forEach((k, i) => { stats[k] = { ...stats[k], name: clean[i], enabled: !!clean[i] }; });
+          const fix = (k: StatId) => (stats[k].enabled ? k : on[0]);
+          const mine = quests.filter(q => q.title.trim()).map(q => sanitizeQuest({ ...q, id: uid(), title: q.title.trim(), stat: fix(q.stat) }));
+          const all = [...(prayers ? [prayerQuest(on[0])] : []), ...mine].slice(0, MAX_QUESTS);
+          set({ profile: { ...p, stats, quests: all } });
+          return true;
+        },
+        setPrayers(on) {
+          const p = get().profile;
+          const has = p.quests.some(q => q.id === 'salah');
+          if (on === has) return true;
+          if (!on) { set({ profile: { ...p, quests: p.quests.filter(q => q.id !== 'salah') } }); return true; }
+          if (p.quests.length >= MAX_QUESTS) return false;
+          const stat = STAT_IDS.find(k => p.stats[k].enabled) ?? 'deen';
+          set({ profile: { ...p, quests: [prayerQuest(stat), ...p.quests] } });
+          return true;
+        },
+        setTutorialDone(done) { patch(p => ({ ...p, tutorialDone: done })); },
+
         addDream(d) {
           const r = addDreamRule(get().profile, d);
           if (r === 'too-many') return false;
@@ -292,7 +325,7 @@ export const useYami = create<YamiState>()(
           set({
             profile: {
               ...fresh,
-              name: p.name, onboarded: p.onboarded, protocol: p.protocol, quests: p.quests, rewards: p.rewards,
+              name: p.name, onboarded: p.onboarded, tutorialDone: p.tutorialDone, protocol: p.protocol, quests: p.quests, rewards: p.rewards,
               stats: Object.fromEntries(Object.entries(p.stats).map(([k, st]) => [k, { ...st, level: 1, xp: 0 }])) as Profile['stats'],
               tasks: p.tasks.map(t => ({ ...t, doneAt: undefined, xpEarned: undefined })),
               dreams: p.dreams.map(d => ({ ...d, achievedAt: undefined, active: true, milestones: d.milestones.map(m => ({ ...m, doneAt: undefined })) })),

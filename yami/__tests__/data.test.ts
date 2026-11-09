@@ -2,18 +2,18 @@ jest.mock('@react-native-async-storage/async-storage', () => require('@react-nat
 
 import { migrate } from '../src/data/migrate';
 import { useYami, todayKey, EARN_CAP_MIN } from '../src/data/store';
-import { newProfile } from '../src/domain/defaults';
+import { newProfile, seededProfile } from '../src/domain/defaults';
 import { prayerTimes, nextPrayer } from '../src/prayer/prayer';
 
 const S = () => useYami.getState();
-beforeEach(() => S().reset());
+beforeEach(() => { S().reset(); useYami.setState({ profile: seededProfile() }); });
 
 describe('migrate', () => {
   test('null -> fresh profile', () => expect(migrate(null)).toEqual(newProfile()));
   test('partial keeps known values and fills the rest', () => {
     const p = migrate({ schemaVersion: 1, honor: 80 });
     expect(p.honor).toBe(80);
-    expect(p.quests).toHaveLength(5);
+    expect(p.quests).toEqual([]);
     expect(p.streak).toEqual({ current: 0, best: 0, bent: false });
   });
   test('garbage does not throw', () => { expect(() => migrate('garbage')).not.toThrow(); expect(migrate(42).honor).toBe(50); });

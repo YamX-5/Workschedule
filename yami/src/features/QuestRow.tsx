@@ -3,6 +3,8 @@ import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { PRESS, VALUE } from '@/src/ui/motion';
 import type { Quest, Report } from '@/src/domain/types';
+import { useYami } from '@/src/data/store';
+import { statLabel } from '@/src/domain/progress';
 import { font, space } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
 import { Button } from '@/src/ui/Button';
@@ -21,13 +23,14 @@ export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
   const colors = useColors();
   const s = useS();
   const label = reportLabel(quest, report);
+  const stat = useYami(st => statLabel(st.profile, quest.stat));
   const xp = quest.type === 'count' ? `+${quest.xp}×${quest.target}` : `+${quest.xp}`;
   return (
     <View style={s.row} testID={`quest-${quest.id}`}>
       <View style={{ flex: 1, gap: 4, minWidth: 0 }}>
         <T style={s.title}>{quest.title}</T>
         <View style={s.tags}>
-          <T style={s.xp}>{xp} {quest.stat.toUpperCase()}</T>
+          <T style={s.xp}>{xp} {stat}</T>
           {quest.type === 'count' && <T style={s.n}>{report?.kind === 'done' ? report.units : 0}/{quest.target}</T>}
           {label && <Pop on={label}><T style={[s.state, label === 'CLEARED' && { backgroundColor: colors.blue, color: colors.black }]}>{label}</T></Pop>}
         </View>

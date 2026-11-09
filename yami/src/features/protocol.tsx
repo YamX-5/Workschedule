@@ -39,8 +39,8 @@ export const TYPE_HELP: Record<QuestType, string> = {
   timer: 'Timer: do it for the set minutes, then tap Done. Knee rehab has its own hold timer in the Quest tab.',
 };
 
-export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
-  quest: Quest; statName: (s: StatId) => string; onSave: (q: Quest) => void; onDelete?: () => void; onCancel: () => void;
+export function QuestEditor({ quest, statName, stats = STAT_IDS, onSave, onDelete, onCancel }: {
+  quest: Quest; statName: (s: StatId) => string; stats?: StatId[]; onSave: (q: Quest) => void; onDelete?: () => void; onCancel: () => void;
 }) {
   const colors = useColors();
   const [q, setQ] = useState(quest);
@@ -55,7 +55,7 @@ export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
     <View style={{ gap: space.s3, padding: space.s3, borderWidth: 1, borderColor: colors.blue2 }}>
       <Field label="Quest" value={q.title} onChangeText={title => { setQ({ ...q, title }); setErr(''); }} error={err === 'Name the quest' ? err : undefined} testID="qe-title" />
       <T v="label">Stat</T>
-      <Segmented label="Stat" value={q.stat} onChange={stat => setQ({ ...q, stat })} options={STAT_IDS.map(k => ({ v: k, label: statName(k).slice(0, 5) }))} />
+      <Segmented label="Stat" value={q.stat} onChange={stat => setQ({ ...q, stat })} options={stats.map(k => ({ v: k, label: statName(k).slice(0, 6) }))} />
       <T style={{ fontSize: 12, color: colors.white2 }}>The stat this quest levels up. Rename or switch off stats in the Stats section above.</T>
       <T v="label">Type</T>
       <Segmented<QuestType> label="Type" value={q.type} onChange={type => setQ({ ...q, type })} options={[{ v: 'check', label: 'Check' }, { v: 'count', label: 'Count' }, { v: 'timer', label: 'Timer' }]} />

@@ -1,13 +1,13 @@
 // Small shared pieces: hero backdrop, screen shell, HUD, bars, segmented control, radar.
 import { Children, isValidElement, useEffect, type ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { router } from 'expo-router';
 import { font, space, TAB_BAR_H } from './tokens';
 import { T } from './Text';
-import { VALUE, enter } from './motion';
+import { EASE_IN_OUT, VALUE, enter } from './motion';
 import { Press } from './Press';
 import { useYami } from '../data/store';
 import { themed, useColors, useTheme } from './theme';
@@ -133,6 +133,33 @@ export function Bar({ value, color, track, h = 4, style, marks }: {
       {marks?.map(m => <View key={m} style={{ position: 'absolute', top: 0, bottom: 0, left: `${m * 100}%`, width: 1, backgroundColor: colors.black }} />)}
     </View>
   );
+}
+
+/** Step dots: done and current steps fill (the Bar glide), the current one is longer. */
+export function Dots({ n, i }: { n: number; i: number }) {
+  const colors = useColors();
+  return (
+    <View style={{ flexDirection: 'row', gap: 4 }} accessibilityLabel={`Step ${i + 1} of ${n}`} testID="dots">
+      {Array.from({ length: n }, (_, k) => <Bar key={k} value={k <= i ? 1 : 0} h={3} color={colors.blue} style={{ width: k === i ? 28 : 14 }} />)}
+    </View>
+  );
+}
+
+/**
+ * A slow, small breath (scale 1 -> 1.02) on the one thing to do next, e.g. an empty state's first button.
+ * Only for rare screens: never on something seen many times a day. Still under reduced motion.
+ */
+export function Pulse({ children, on = true }: { children: ReactNode; on?: boolean }) {
+  const reduced = useReducedMotion();
+  const k = useSharedValue(1);
+  useEffect(() => {
+    if (!on || reduced) { k.set(1); return; }
+    const half = { duration: 1100, easing: EASE_IN_OUT };
+    k.set(withRepeat(withSequence(withTiming(1.02, half), withTiming(1, half)), -1));
+    return () => cancelAnimation(k);
+  }, [on, reduced, k]);
+  const a = useAnimatedStyle(() => ({ transform: [{ scale: k.get() }] }));
+  return <Animated.View style={a}>{children}</Animated.View>;
 }
 
 export function Segmented<V extends string | number>({ options, value, onChange, light, label }: {

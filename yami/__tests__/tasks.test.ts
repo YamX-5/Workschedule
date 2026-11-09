@@ -2,14 +2,14 @@ jest.mock('@react-native-async-storage/async-storage', () => require('@react-nat
 
 import { migrate } from '../src/data/migrate';
 import { useYami } from '../src/data/store';
-import { newProfile } from '../src/domain/defaults';
+import { newProfile, seededProfile } from '../src/domain/defaults';
 import { overdue, parseQuick, searchTasks, someday, tasksForDay, upcoming } from '../src/domain/tasks';
 import type { Profile, Task } from '../src/domain/types';
 import { TASK_XP } from '../src/domain/economy';
 
 const TODAY = '2026-11-09'; // a Monday
 const S = () => useYami.getState();
-beforeEach(() => S().reset());
+beforeEach(() => { S().reset(); useYami.setState({ profile: seededProfile() }); });
 
 describe('parseQuick', () => {
   const p = (s: string) => parseQuick(s, TODAY);

@@ -1,7 +1,12 @@
 ﻿// Progression v2 (spec §12): player level, rank, shards, streak, records, dreams, reward shop.
-import type { DaySummary, Dream, Profile, RecordId, Streak } from './types';
+import { STAT_IDS, type DaySummary, type Dream, type Profile, type RecordId, type StatId, type Streak } from './types';
 import type { QuestResult } from './judgment';
 import { applyXp } from './xp';
+
+/** Stats the player switched on, in slot order. */
+export const activeStats = (p: Profile): StatId[] => STAT_IDS.filter(k => p.stats[k].enabled);
+/** The player's name for a stat; an unnamed slot reads "STAT n" rather than a name we made up. */
+export const statLabel = (p: Profile, k: StatId) => p.stats[k].name || `STAT ${STAT_IDS.indexOf(k) + 1}`;
 
 export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 

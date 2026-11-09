@@ -142,6 +142,8 @@ export interface Profile {
   fallRecord: { day: number; at: number }[];
   scars: number;
   onboarded: boolean;
+  /** The coach-mark tour after onboarding has been seen (or skipped). Replayable from Protocol. */
+  tutorialDone: boolean;
   /** dayKey of the first day played; days before it are never judged. '' until first open. */
   startKey: string;
   protocol: Protocol;
