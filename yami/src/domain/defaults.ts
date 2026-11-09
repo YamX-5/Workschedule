@@ -26,6 +26,11 @@ export function defaultProtocol(): Protocol {
   };
 }
 
+/** The prayer quest. Its id must stay 'salah': the Gates screen reports to it. */
+export const prayerQuest = (stat: StatId): Quest =>
+  ({ id: 'salah', title: 'Salah', stat, xp: 50, type: 'count', target: 5, days: DAILY, deadline: '23:00' });
+
+/** The owner's original five quests. New profiles start empty; tests use these through seededProfile(). */
 export function seedQuests(): Quest[] {
   return [
     { id: 'salah', title: 'Salah', stat: 'deen', xp: 50, type: 'count', target: 5, days: DAILY, deadline: '23:00' },
@@ -36,8 +41,9 @@ export function seedQuests(): Quest[] {
   ];
 }
 
-const STAT_NAMES: Record<StatId, string> = { deen: 'DEEN', body: 'BODY', mind: 'MIND', craft: 'CRAFT', rest: 'REST' };
-const stat = (id: StatId): StatState => ({ level: 1, xp: 0, enabled: true, name: STAT_NAMES[id] });
+export const SEED_STAT_NAMES: Record<StatId, string> = { deen: 'DEEN', body: 'BODY', mind: 'MIND', craft: 'CRAFT', rest: 'REST' };
+// Blank names: the player names their own stats in onboarding.
+const stat = (): StatState => ({ level: 1, xp: 0, enabled: true, name: '' });
 
 export function newProfile(): Profile {
   return {
@@ -46,8 +52,8 @@ export function newProfile(): Profile {
     title: 'The Protagonist',
     day: 1,
     honor: 50,
-    stats: { deen: stat('deen'), body: stat('body'), mind: stat('mind'), craft: stat('craft'), rest: stat('rest') },
-    quests: seedQuests(),
+    stats: { deen: stat(), body: stat(), mind: stat(), craft: stat(), rest: stat() },
+    quests: [],
     tasks: [],
     reports: [],
     judgedDays: [],
@@ -57,6 +63,7 @@ export function newProfile(): Profile {
     fallRecord: [],
     scars: 0,
     onboarded: false,
+    tutorialDone: false,
     startKey: '',
     protocol: defaultProtocol(),
     shards: 0,
@@ -69,4 +76,12 @@ export function newProfile(): Profile {
     titles: ['The Protagonist'],
     bestLevel: 5,
   };
+}
+
+/** A fully set-up profile with the five seed quests and named stats. For tests (pace, judgment) only. */
+export function seededProfile(): Profile {
+  const p = newProfile();
+  const stats = { ...p.stats };
+  (Object.keys(stats) as StatId[]).forEach(k => { stats[k] = { ...stats[k], name: SEED_STAT_NAMES[k] }; });
+  return { ...p, stats, quests: seedQuests() };
 }

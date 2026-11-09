@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { HOLD_SEC, EARN_PER_SET, useHoldTimer } from '@/src/features/useHoldTimer';
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -32,6 +33,18 @@ export default function Quest() {
     timer.reset();
   });
   const R = 58, C = 2 * Math.PI * R;
+
+  if (!q) return (
+    <Screen>
+      <Window title="Hold timer" kana="クエスト" tone="white">
+        <View style={{ gap: space.s3 }} testID="quest-tab-empty">
+          <T style={s.name}>No rehab quest yet</T>
+          <T style={s.sub}>This timer runs 45-second holds for a quest called Knee rehab and earns phone time back. Your other quests are on Status.</T>
+          <Button variant="dark" label="Go to Status" onPress={() => router.navigate('/')} />
+        </View>
+      </Window>
+    </Screen>
+  );
 
   return (
     <Screen>

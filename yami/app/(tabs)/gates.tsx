@@ -5,6 +5,7 @@ import { PRAYERS, PRAYER_AR, nextPrayer, prayerTimes } from '@/src/prayer/prayer
 import type { GateMark } from '@/src/domain/types';
 import { Bar, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
+import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
 import { font, space } from '@/src/ui/tokens';
 import { fmtMin, fmtTime } from '@/src/ui/format';
@@ -21,6 +22,7 @@ export default function Gates() {
   const s = useS();
   const p = useYami(s => s.profile);
   const cycle = useYami(s => s.cycleGate);
+  const tracked = p.quests.some(q => q.id === 'salah');
   const [now, setNow] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const key = todayKey(p, now);
@@ -41,7 +43,13 @@ export default function Gates() {
           <T style={s.ar}>{PRAYER_AR[next.name]}</T>
         </View>
         <Bar value={cleared / 5} color={colors.black} track={colors.inkLine} h={6} style={{ marginTop: space.s3 }} />
-        <T style={s.sub}>{cleared} of 5 gates open. Tap a portal to mark it: on time, late, missed. Each prayer pays XP instantly.</T>
+        <T style={s.sub}>{cleared} of 5 gates open. Tap a portal to mark it: on time, late, missed.{tracked ? ' Each prayer pays XP instantly.' : ''}</T>
+        {!tracked && (
+          <View style={{ marginTop: space.s3, gap: space.s2 }} testID="gates-untracked">
+            <T style={s.sub}>Prayers aren't tracked as a quest, so marks here earn no XP.</T>
+            <Button small variant="outline" label="Track the 5 prayers" onPress={() => useYami.getState().setPrayers(true)} />
+          </View>
+        )}
       </Window>
 
       <View style={s.grid}>

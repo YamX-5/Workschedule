@@ -169,7 +169,7 @@ function Editor({ task, onClose }: { task: Task; onClose: () => void }) {
         </Row>
         <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />
         <T v="label">Stat it grows</T>
-        <Segmented label="Stat" value={stat} onChange={setStat} options={STAT_IDS.map(k => ({ v: k, label: stats[k].name.slice(0, 5) }))} />
+        <Segmented label="Stat" value={stat} onChange={setStat} options={STAT_IDS.filter(k => stats[k].enabled || k === stat).map(k => ({ v: k, label: (stats[k].name || `STAT ${STAT_IDS.indexOf(k) + 1}`).slice(0, 6) }))} />
         <T style={{ fontSize: 12, color: colors.white3 }}>Each to-do pays {TASK_XP} XP. The first {TASKS_REWARDED_PER_DAY} you finish each day count.</T>
         <Row>
           <Button small label="Save" onPress={save} style={{ flex: 1 }} />

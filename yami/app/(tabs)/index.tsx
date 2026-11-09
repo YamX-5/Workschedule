@@ -5,11 +5,12 @@ import { useYami, todayKey } from '@/src/data/store';
 import { frictionSec, minutesLeft, phoneState } from '@/src/domain/budget';
 import { CLEARS_PER_STEP, dreamProgress, playerLevel, rankFor } from '@/src/domain/progress';
 import { xpToNext } from '@/src/domain/xp';
+import { DAILY_XP_CAP } from '@/src/domain/economy';
 import { weekday } from '@/src/domain/time';
 import { STAT_IDS } from '@/src/domain/types';
 import { QuestRow } from '@/src/features/QuestRow';
 import { TodayPlanCard } from '@/src/features/plan';
-import { Bar, Radar, Row, Screen, Shield } from '@/src/ui/parts';
+import { Bar, Pulse, Radar, Row, Screen, Shield } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
@@ -36,6 +37,7 @@ export default function Status() {
   const lvl = playerLevel(p);
   const dreamTitle = (id?: string) => p.dreams.find(d => d.id === id)?.title;
   const dreams = p.dreams.filter(d => d.active && !d.achievedAt);
+  const xpToday = p.usage.dayKey === key ? p.usage.xpEarned ?? 0 : 0;
 
   return (
     <Screen>
@@ -54,7 +56,16 @@ export default function Status() {
         </Row>
       </Window>
 
-      <Window title="Daily quests" kana="クエスト" tone="white" meta={open ? `${open} unreported` : 'all reported'}>
+      <Window title="Daily quests" kana="クエスト" tone="white" meta={quests.length ? (open ? `${open} unreported` : 'all reported') : undefined}>
+        {!p.quests.length ? (
+          <View style={{ gap: space.s3 }} testID="quests-empty">
+            <T style={s.emptyT}>No quests yet.</T>
+            <T style={s.emptySub}>Add your first one. It shows up here every day, and clearing it pays XP right away.</T>
+            <Pulse><Button variant="dark" label="Add your first quest" testID="add-first-quest" onPress={() => router.push({ pathname: '/protocol', params: { add: '1' } })} /></Pulse>
+          </View>
+        ) : !quests.length ? (
+          <T style={s.emptySub}>Nothing scheduled today. Change a quest's days in Protocol.</T>
+        ) : null}
         {quests.map(q => (
           <QuestRow key={q.id} quest={q} report={reportOf(q.id)} dream={dreamTitle(q.dreamId)}
             onDone={() => {
@@ -67,7 +78,13 @@ export default function Status() {
             }}
             onDidnt={() => report(q.id, 'didnt', 0)} />
         ))}
-        <T style={s.hint}>Honesty beats perfection. A confession costs nothing; silence costs XP and Honor.</T>
+        {quests.length > 0 && (
+          <View style={{ marginTop: space.s3, gap: 6 }} testID="xp-today">
+            <Row><T style={s.xpL}>XP today</T><View style={{ flex: 1 }} /><T style={s.xpV}>{xpToday} / {DAILY_XP_CAP}</T></Row>
+            <Bar value={xpToday / DAILY_XP_CAP} color={colors.purple} track={colors.inkLine} h={6} />
+          </View>
+        )}
+        {quests.length > 0 && <T style={s.hint}>Honesty beats perfection. A confession costs nothing; silence costs XP and Honor.</T>}
       </Window>
 
       <TodayPlanCard />
@@ -86,13 +103,21 @@ export default function Status() {
                 </Row>
                 <Bar value={pr.value} color={colors.blue} h={6} />
                 <T style={s.sub2} numberOfLines={2}>
-                  {nextStep ? `Next: ${nextStep.title} · ${pr.clears}/${CLEARS_PER_STEP} quest clears` : 'All milestones done'}
+                  {nextStep ? `Next milestone: ${nextStep.title} · ${pr.clears}/${CLEARS_PER_STEP} clears` : 'All milestones done'}
                   {pr.daysLeft !== undefined ? ` · ${pr.daysLeft >= 0 ? `${pr.daysLeft}d left` : `${-pr.daysLeft}d over`} · ${pr.onPace ? 'on pace' : 'behind'}` : ''}
                 </T>
               </Press>
             );
           })}
-          {dreams.length < 3 && <Button small variant="ghost" label={dreams.length ? 'Add a dream' : 'Add your first dream'} onPress={() => router.push('/dream')} />}
+          {!dreams.length && (
+            <View style={{ gap: space.s2 }} testID="dreams-empty">
+              <T style={s.dreamT}>No dreams yet.</T>
+              <T style={s.sub2}>A Dream is a long goal, like a 5K or a finished book. Link quests to it and every clear moves the bar.</T>
+            </View>
+          )}
+          {dreams.length < 3 && (dreams.length
+            ? <Button small variant="ghost" label="Add a dream" onPress={() => router.push('/dream')} />
+            : <Pulse on={p.quests.length > 0}><Button small variant="seal" label="Add your first dream" testID="add-first-dream" onPress={() => router.push('/dream')} /></Pulse>)}
         </View>
       </Window>
 
@@ -135,5 +160,9 @@ const useS = themed(colors => ({
   stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space.s4 },
   dreamT: { fontFamily: font.textSemi, fontSize: 15, color: colors.white, flexShrink: 1 },
   sub2: { fontSize: 12, color: colors.white3 },
+  xpL: { fontFamily: font.textSemi, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: colors.ink2 },
+  xpV: { fontFamily: font.display, fontSize: 12, color: colors.ink },
+  emptyT: { fontFamily: font.textSemi, fontSize: 16, color: colors.ink },
+  emptySub: { fontSize: 13, color: colors.ink2 },
   debuff: { fontSize: 11, color: colors.purpleSoft, fontWeight: '700' },
 }));

@@ -1,4 +1,4 @@
-import { newProfile } from '../src/domain/defaults';
+import { seededProfile } from '../src/domain/defaults';
 import { judgeDay } from '../src/domain/judgment';
 import { addDays } from '../src/domain/time';
 import { playerLevel } from '../src/domain/progress';
@@ -18,7 +18,7 @@ test('a form every 10 levels, Supreme at 100', () => {
 
 /** Plays the 5 seed quests from day 1, clearing a fixed share of days, and returns the day LV 100 is reached. */
 function daysTo100(clearEvery: (day: number) => boolean): number {
-  let p: Profile = newProfile();
+  let p: Profile = seededProfile();
   let key = '2026-11-08';
   for (let day = 1; day <= 800; day++) {
     if (clearEvery(day)) {

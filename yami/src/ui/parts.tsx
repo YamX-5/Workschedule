@@ -1,13 +1,13 @@
 // Small shared pieces: hero backdrop, screen shell, HUD, bars, segmented control, radar.
 import { Children, isValidElement, useEffect, type ReactNode } from 'react';
 import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { router } from 'expo-router';
 import { font, space, TAB_BAR_H } from './tokens';
 import { T } from './Text';
-import { VALUE, enter } from './motion';
+import { EASE_IN_OUT, VALUE, enter } from './motion';
 import { Press } from './Press';
 import { useYami } from '../data/store';
 import { themed, useColors, useTheme } from './theme';
@@ -131,6 +131,40 @@ export function Bar({ value, color, track, h = 4, style, marks }: {
     <View style={[{ height: h, backgroundColor: track ?? colors.line, overflow: 'hidden' }, style]}>
       <Animated.View style={[{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, transformOrigin: 'left', backgroundColor: color ?? colors.blue }, fill]} />
       {marks?.map(m => <View key={m} style={{ position: 'absolute', top: 0, bottom: 0, left: `${m * 100}%`, width: 1, backgroundColor: colors.black }} />)}
+    </View>
+  );
+}
+
+/** Step dots: done and current steps fill (the Bar glide), the current one is longer. */
+export function Dots({ n, i }: { n: number; i: number }) {
+  const colors = useColors();
+  return (
+    <View style={{ flexDirection: 'row', gap: 4 }} accessibilityLabel={`Step ${i + 1} of ${n}`} testID="dots">
+      {Array.from({ length: n }, (_, k) => <Bar key={k} value={k <= i ? 1 : 0} h={3} color={colors.blue} style={{ width: k === i ? 28 : 14 }} />)}
+    </View>
+  );
+}
+
+/**
+ * A slow breathing ring (accent outline, opacity 0 -> 0.9) around the one thing to do next, e.g. an empty
+ * state's first button. The button itself never dims, so it can't read as disabled. Only on rare screens,
+ * never on something seen many times a day. Still under reduced motion.
+ */
+export function Pulse({ children, on = true }: { children: ReactNode; on?: boolean }) {
+  const colors = useColors();
+  const reduced = useReducedMotion();
+  const k = useSharedValue(0);
+  useEffect(() => {
+    if (!on || reduced) { k.set(0); return; }
+    const half = { duration: 1100, easing: EASE_IN_OUT };
+    k.set(withRepeat(withSequence(withTiming(0.9, half), withTiming(0, half)), -1));
+    return () => cancelAnimation(k);
+  }, [on, reduced, k]);
+  const a = useAnimatedStyle(() => ({ opacity: k.get() }));
+  return (
+    <View>
+      {children}
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: -4, left: -4, right: -4, bottom: -4, borderWidth: 2, borderColor: colors.blue }, a]} />
     </View>
   );
 }

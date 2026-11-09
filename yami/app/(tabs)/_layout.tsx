@@ -7,6 +7,7 @@ import { font, space, TAB_BAR_H } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
 import { Press } from '@/src/ui/Press';
 import { themed, useColors } from '@/src/ui/theme';
+import { Tutorial } from '@/src/features/Tutorial';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -60,9 +61,12 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
 export default function TabLayout() {
   const colors = useColors();
   return (
-    <Tabs tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: colors.black } }}>
-      {TABS.map(t => <Tabs.Screen key={t.name} name={t.name} options={{ title: t.label }} />)}
-    </Tabs>
+    <>
+      <Tabs tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: colors.black } }}>
+        {TABS.map(t => <Tabs.Screen key={t.name} name={t.name} options={{ title: t.label }} />)}
+      </Tabs>
+      <Tutorial />
+    </>
   );
 }
 

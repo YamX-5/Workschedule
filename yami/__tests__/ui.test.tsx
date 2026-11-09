@@ -11,7 +11,7 @@ import { Intrusion, LimitReached, Sealed } from '../src/features/lock';
 import { HoldButton, HOLD_MS } from '../src/ui/HoldButton';
 import { useHoldTimer, HOLD_SEC } from '../src/features/useHoldTimer';
 import { planReminders } from '../src/notify/plan';
-import { seedQuests, newProfile } from '../src/domain/defaults';
+import { seedQuests, seededProfile } from '../src/domain/defaults';
 import { useYami } from '../src/data/store';
 import type { DaySummary } from '../src/domain/types';
 import { Text } from 'react-native';
@@ -137,7 +137,7 @@ describe('Lock', () => {
 });
 
 describe('reminders', () => {
-  const p = newProfile();
+  const p = seededProfile();
   test('lead 30, Perio deadline 23:00, unreported -> 22:30', async () => {
     const r = planReminders(p, new Date('2026-11-08T12:00:00'), '2026-11-08').find(x => x.id === 'q-perio')!;
     expect(r.at).toEqual(new Date('2026-11-08T22:30:00'));

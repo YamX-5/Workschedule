@@ -1,5 +1,5 @@
 import { dayKey, addDays } from '../src/domain/time';
-import { newProfile, defaultProtocol } from '../src/domain/defaults';
+import { newProfile, seededProfile, defaultProtocol } from '../src/domain/defaults';
 import { frictionSec, phoneState, minutesLeft, canOpen } from '../src/domain/budget';
 import { applyXp, xpToNext } from '../src/domain/xp';
 import { judgeDay } from '../src/domain/judgment';
@@ -16,7 +16,19 @@ describe('time', () => {
   test('after Fajr belongs to today', () => expect(dayKey(new Date('2026-11-08T13:00:00'), fajr('2026-11-08'))).toBe('2026-11-08'));
   test('01:30 belongs to the previous day', () => expect(dayKey(new Date('2026-11-09T01:30:00'), fajr('2026-11-09'))).toBe('2026-11-08'));
   test('exactly at Fajr starts the new day', () => expect(dayKey(new Date('2026-11-09T05:41:00'), fajr('2026-11-09'))).toBe('2026-11-09'));
-  test('newProfile has 5 seeded quests and honor 50', () => { const p = newProfile(); expect(p.quests).toHaveLength(5); expect(p.honor).toBe(50); expect(p.schemaVersion).toBe(1); });
+  test('newProfile starts blank: no quests, unnamed stats, tutorial not seen, honor 50', () => {
+    const p = newProfile();
+    expect(p.quests).toEqual([]);
+    expect(Object.values(p.stats).map(s => s.name)).toEqual(['', '', '', '', '']);
+    expect(p.tutorialDone).toBe(false);
+    expect(p.honor).toBe(50);
+    expect(p.schemaVersion).toBe(1);
+  });
+  test('seededProfile (tests only) keeps the 5 seed quests and named stats', () => {
+    const p = seededProfile();
+    expect(p.quests.map(q => q.id)).toEqual(['salah', 'rehab', 'perio', 'ship', 'sleep']);
+    expect(p.stats.deen.name).toBe('DEEN');
+  });
   test('defaultProtocol uses spec values', () => expect(defaultProtocol()).toMatchObject({ capMin: 120, reserveMin: 30, windDown: '22:30', sleepTarget: '23:00', fajrAlarm: '05:30', preset: 'balanced' }));
   test('addDays crosses months', () => expect(addDays('2026-11-30', 1)).toBe('2026-12-01'));
 });
@@ -51,7 +63,7 @@ describe('xp', () => {
 // ---------------- Task 5: judgment ----------------
 const D = '2026-11-08'; // a Sunday; seeded quests are daily
 const rep = (questId: string, kind: 'done' | 'didnt', units = 1, late = false, key = D): Report => ({ questId, dayKey: key, kind, units, at: 0, late });
-const withReports = (reports: Report[], patch: Partial<Profile> = {}): Profile => ({ ...newProfile(), reports, ...patch });
+const withReports = (reports: Report[], patch: Partial<Profile> = {}): Profile => ({ ...seededProfile(), reports, ...patch });
 const resultOf = (p: Profile, id: string) => judgeDay(p, D).results.find(r => r.questId === id)!;
 
 describe('judgment', () => {
@@ -104,7 +116,7 @@ describe('judgment', () => {
 
 // ---------------- Task 6: fall ----------------
 test('FALL keeps honor and scars', () => {
-  const p = { ...newProfile(), day: 12, honor: 72 };
+  const p = { ...seededProfile(), day: 12, honor: 72 };
   p.stats = { ...p.stats, body: { ...p.stats.body, level: 4, xp: 30 } };
   const f = fall(p, 1000);
   expect(f.day).toBe(1);
@@ -123,7 +135,7 @@ const day = (patch: Partial<DaySummary> = {}): DaySummary => ({
 
 describe('progression', () => {
   test('player level and rank', () => {
-    const p = newProfile();
+    const p = seededProfile();
     ([['deen', 7], ['body', 3], ['mind', 9], ['craft', 11], ['rest', 5]] as const).forEach(([k, l]) => { p.stats[k] = { ...p.stats[k], level: l }; });
     expect(playerLevel(p)).toBe(35);
     expect(rankFor(35)).toBe('D');
@@ -153,10 +165,10 @@ describe('progression', () => {
     expect(dayHolds(day({ usedMin: 151 }), 30)).toBe(false);
   });
   test('records unlock once', () => {
-    const p = { ...newProfile(), history: [day()] };
+    const p = { ...seededProfile(), history: [day()] };
     expect(checkRecords(p)).toContain('firstLight');
     expect(checkRecords({ ...p, records: { firstLight: 1 } })).not.toContain('firstLight');
-    const seven = { ...newProfile(), history: Array.from({ length: 7 }, () => day()), streak: { current: 7, best: 7, bent: false } };
+    const seven = { ...seededProfile(), history: Array.from({ length: 7 }, () => day()), streak: { current: 7, best: 7, bent: false } };
     expect(checkRecords(seven)).toEqual(expect.arrayContaining(['sevenUnbroken', 'underCap', 'fiveGates']));
   });
   test('judgment feeds history, streak and shards', () => {
@@ -171,7 +183,7 @@ describe('progression', () => {
   const dream = { id: 'd1', title: 'Athletic again', why: 'Play without pain', stat: 'body' as const, createdAt: 0, active: true,
     milestones: [{ id: 'm1', title: 'Wall sit 5x45s pain-free' }, { id: 'm2', title: 'Full game, no pain' }] };
   test('milestone and dream achieved', () => {
-    let p = addDream(newProfile(), dream) as Profile;
+    let p = addDream(seededProfile(), dream) as Profile;
     const DAY = 86_400_000; // one milestone a day, never on the day the dream was made
     p = completeMilestone(p, 'd1', 'm1', DAY);
     expect(p.stats.body).toMatchObject({ level: 2, xp: 0 });
@@ -185,14 +197,14 @@ describe('progression', () => {
     expect(completeMilestone(p, 'd1', 'm2', 3 * DAY)).toBe(p); // no double pay
   });
   test('reward shop refuses when short', () => {
-    const p = { ...newProfile(), shards: 100, rewards: [{ id: 'r', title: 'Shoes', cost: 600 }] };
+    const p = { ...seededProfile(), shards: 100, rewards: [{ id: 'r', title: 'Shoes', cost: 600 }] };
     expect(claimReward(p, 'r', 1)).toBe('not-enough');
     const rich = claimReward({ ...p, shards: 700 }, 'r', 1) as Profile;
     expect(rich.shards).toBe(100);
     expect(rich.claims).toEqual([{ rewardId: 'r', at: 1, cost: 600 }]);
   });
   test('max 3 active dreams', () => {
-    let p: Profile = newProfile();
+    let p: Profile = seededProfile();
     for (let i = 0; i < 3; i++) p = addDream(p, { ...dream, id: `d${i}` }) as Profile;
     expect(addDream(p, { ...dream, id: 'd4' })).toBe('too-many');
     expect(addDream(p, { ...dream, id: 'd5', active: false })).not.toBe('too-many');
@@ -203,7 +215,7 @@ import { dreamProgress, CLEARS_PER_STEP } from '../src/domain/progress';
 describe('dream progress', () => {
   const T0 = new Date('2026-11-01T12:00:00').getTime();
   const base = () => {
-    const p = newProfile();
+    const p = seededProfile();
     const d = { id: 'd', title: 'Athletic again', why: '', stat: 'body' as const, createdAt: T0, active: true,
       milestones: [{ id: 'm1', title: 'a', doneAt: T0 + 1000 }, { id: 'm2', title: 'b' }] };
     p.dreams = [d];

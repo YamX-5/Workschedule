@@ -64,6 +64,13 @@ describe('theme', () => {
     ['white', 'glass'], ['white3', 'glass'], ['blue', 'glass'], ['purpleSoft', 'glass'],
     ['black', 'white'], ['black', 'blue'], ['ink', 'white'], ['ink2', 'white'], ['purple', 'white'], ['white', 'purple'],
   ];
+  test('darkness is purple: no ice-blue left in any role', () => {
+    const vals = Object.values(THEMES.darkness.c).join(' ').toUpperCase();
+    expect(vals).not.toContain('8FDCFF');
+    expect(vals).not.toContain('143,220,255'); // the same blue as an rgba() tint
+    expect(THEMES.darkness.c.blue).toBe('#9B5CFF');
+  });
+
   test.each(THEME_IDS)('%s palette passes WCAG AA (4.5:1) for body text', id => {
     const c = THEMES[id].c;
     const fails = PAIRS.map(([f, b]) => [f, b, ratio(c[f], c[b], c.black)] as const).filter(([, , r]) => r < 4.5);
