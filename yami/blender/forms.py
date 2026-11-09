@@ -1,14 +1,17 @@
-# Yami character forms: builds the character in Blender and renders the turntables.
+# Yami character forms: builds the character in Blender and renders the turntables, per theme.
 #
-# Full run (all 11 tiers x 24 frames, writes assets/forms/t*/NN.webp + src/ui/formFrames.ts):
-#   "D:\Tools\blender-5.2.0-windows-x64\blender.exe" -b -P "D:\My Apps\Yami\yami\blender\forms.py"
+# Full run (5 themes x 11 tiers x 24 frames -> assets/forms/{theme}/t*/NN.webp + src/ui/formFrames.ts):
+#   "D:\Tools\blender-5.2.0-windows-x64\blender.exe" --factory-startup -b -P "D:\My Apps\Yami\yami\blender\forms.py"
+# One theme (comma list ok, default all; formFrames.ts still lists every theme):
+#   ... -P forms.py -- --theme sakura
 # Preview run (subset, into another folder, no .ts written):
-#   blender.exe -b -P forms.py -- --tiers 0,5,10 --frames 0,6 --out C:\some\dir
-# Contact sheet (frame 00 + 06 per tier on #030308): add  --sheet C:\path\forms-sheet.png
+#   blender.exe --factory-startup -b -P forms.py -- --theme ember --tiers 0,5,10 --frames 0,6 --out C:\some\dir
+# Contact sheets (frame 00 + 06 per tier on the theme's app bg): add  --sheet C:\dir  -> C:\dir\forms-sheet-{theme}.png
+# Always pass --factory-startup (a user add-on otherwise loads). One Blender at a time: low-memory laptop.
 #
 # Pure built-in primitives/modifiers, EEVEE, no add-ons. Upgrades are cumulative: every
 # object carries a "tier" (first tier it appears) and optional "until" (last tier it shows).
-import bpy, bmesh, math, os, sys, time
+import bpy, bmesh, math, os, random, sys, time
 from mathutils import Vector, Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,14 +28,35 @@ OUT = arg("--out", os.path.join(APP, "assets", "forms"))
 SHEET = arg("--sheet")
 FULL = "--tiers" not in argv and "--frames" not in argv and "--out" not in argv
 
-# ---- palette (app tokens, linear-ish via hex) -----------------------------
+# ---- themes ---------------------------------------------------------------
 def hx(h, a=1.0):
     h = h.lstrip("#")
     c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     c = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
     return (*c, a)
-INK, PURPLE, PURPLE_HI, PURPLE_SOFT, ICE, WHITE = (
-    hx("#0B0816"), hx("#2A1252"), hx("#6B3BD9"), hx("#9B78F2"), hx("#8FDCFF"), hx("#F2F0F7"))
+
+# ink = darkest body base, cloth = hood/cape, armor = matte base colour, hi = deep accent,
+# soft = secondary glow/trim, glow = emissive accent, white = tier-10 "light" form, bg = app background.
+# Optional: rim_k (coloured back lights), key_k (front key light), glare (bloom, 0 = off),
+# body_rim (body fresnel), glow_k (emissive strength), outline (toon outline at every tier).
+# darkness is the original look: keep its values and defaults untouched.
+THEMES = {
+    "darkness": dict(ink="#0B0816", cloth="#120A24", armor="#2A1252", hi="#6B3BD9", soft="#9B78F2", glow="#8FDCFF",
+                     white="#F2F0F7", key="#C9C2E8", world="#120A24", bg="#030308", motif=None),
+    "sakura": dict(ink="#FFF5F8", cloth="#F7C6D6", armor="#E8578A", hi="#B8325F", soft="#F4A6C0", glow="#E8578A",
+                   white="#F4A6C0", key="#FFFFFF", world="#F7C6D6", bg="#FFF5F8", motif="petal",
+                   rim_k=0.25, key_k=1.6, glare=0.0, body_rim=0.4, glow_k=0.15, outline="#8E2A50"),
+    "abyss": dict(ink="#04161D", cloth="#06202A", armor="#0B3442", hi="#1A8C9C", soft="#2FB8C8", glow="#3FE0D0",
+                  white="#E6FBFA", key="#BFE6EA", world="#06202A", bg="#02090F", motif="bubble"),
+    "ember": dict(ink="#140904", cloth="#1E0E05", armor="#3A1A08", hi="#B4561C", soft="#E07B39", glow="#FFB347",
+                  white="#FFF3E0", key="#EBD2B8", world="#1E0E05", bg="#0A0604", motif="spark"),
+    "jade": dict(ink="#04140E", cloth="#072118", armor="#0F3A2A", hi="#25875A", soft="#3FBF85", glow="#6FE3A8",
+                 white="#EEFFF5", key="#C4E8D4", world="#072118", bg="#04100B", motif="leaf"),
+}
+def cols(P): return {k: hx(v) for k, v in P.items() if isinstance(v, str) and v.startswith("#")}
+TH_ARG = arg("--theme", "all")
+THEME_LIST = list(THEMES) if TH_ARG == "all" else TH_ARG.split(",")
+for th in THEME_LIST: assert th in THEMES, f"unknown theme {th}"
 
 # ---- scene reset ----------------------------------------------------------
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -76,21 +100,42 @@ def glow(name, color, strength):
     nt.links.new(e.outputs[0], nt.nodes["Material Output"].inputs["Surface"])
     return m
 
-M = {
-    "body": mat("body", INK, 0.55, 0.15, rim=PURPLE_SOFT, rim_str=0.9),
-    "body_light": mat("body_light", WHITE, 0.3, 0.0, emit=WHITE, strength=1.6, rim=ICE, rim_str=3.0),
-    "cloth": mat("cloth", hx("#120A24"), 0.8, 0.0, rim=PURPLE_HI, rim_str=0.7),
-    "cloth_light": mat("cloth_light", PURPLE_SOFT, 0.5, 0.0, emit=PURPLE_SOFT, strength=0.9, rim=ICE, rim_str=2.5),
-    "armor": mat("armor", PURPLE, 0.3, 0.8, rim=PURPLE_SOFT, rim_str=1.2),
-    "armor_light": mat("armor_light", WHITE, 0.15, 0.9, emit=ICE, strength=1.2, rim=WHITE, rim_str=4.0),
-    "ice": glow("ice", ICE, 8.0),
-    "ice_soft": glow("ice_soft", ICE, 3.0),
-    "violet": glow("violet", PURPLE_SOFT, 4.0),
-    "white": glow("white", WHITE, 10.0),
-    "wingfill": mat("wingfill", PURPLE, 0.4, 0.0, emit=PURPLE_HI, strength=0.9),
-    "aura": glow("aura", ICE, 1.8),
-}
-M["aura"].use_backface_culling = True
+def build_materials(P):
+    c, gk = cols(P), P.get("glow_k", 1.0)
+    M = {
+        "body": mat("body", c["ink"], 0.55, 0.15, rim=c["soft"], rim_str=0.9),
+        "body_light": mat("body_light", c["white"], 0.3, 0.0, emit=c["white"], strength=1.6 * gk, rim=c["glow"], rim_str=3.0 * gk),
+        "cloth": mat("cloth", c["cloth"], 0.8, 0.0, rim=c["hi"], rim_str=0.7 * gk),
+        "cloth_light": mat("cloth_light", c["soft"], 0.5, 0.0, emit=c["soft"], strength=0.9 * gk, rim=c["glow"], rim_str=2.5 * gk),
+        "armor": mat("armor", c["armor"], 0.3, 0.8, rim=c["soft"], rim_str=1.2 * gk),
+        "armor_light": mat("armor_light", c["white"], 0.15, 0.9, emit=c["glow"], strength=1.2 * gk, rim=c["white"], rim_str=4.0 * gk),
+        "ice": glow("ice", c["glow"], 8.0 * gk),
+        "ice_soft": glow("ice_soft", c["glow"], 3.0 * gk),
+        "violet": glow("violet", c["soft"], 4.0 * gk),
+        "white": glow("white", c["white"], 10.0 * gk),
+        "wingfill": mat("wingfill", c["armor"], 0.4, 0.0, emit=c["hi"], strength=0.9),
+        # dark themes: glowing aura hull (tier 9+); light themes: flat toon outline at every tier
+        "aura": glow("aura", c["outline"], 1.0) if "outline" in c else glow("aura", c["glow"], 1.8),
+        # motifs
+        "petal": mat("petal", hx("#FFD3E1"), 0.6, 0.0, emit=hx("#F7A8C4"), strength=0.25),
+        "petal_edge": glow("petal_edge", hx("#C2416F"), 1.0),
+        "bubble": mat("bubble", c["ink"], 0.1, 0.0, rim=c["glow"], rim_str=4.0),
+        "spark": glow("spark", c["glow"], 9.0),
+        "spark2": glow("spark2", c["soft"], 6.0),
+        "leaf": mat("leaf", c["hi"], 0.5, 0.0, emit=c["soft"], strength=1.2, rim=c["glow"], rim_str=2.0),
+    }
+    M["aura"].use_backface_culling = True
+    return M
+
+M = build_materials(THEMES[THEME_LIST[0]])
+
+def apply_materials(P):
+    """Swap every material for the theme's version under the same name (keeps the 'dark'/'light' tags valid)."""
+    global M
+    new = build_materials(P)
+    for k, m in new.items():
+        old = M[k]; old.user_remap(m); bpy.data.materials.remove(old); m.name = k
+    M = new
 
 # ---- helpers --------------------------------------------------------------
 pivot = bpy.data.objects.new("Pivot", None); col.objects.link(pivot)  # turntable
@@ -253,6 +298,50 @@ for n in ("Ground", "Ground2"): bpy.data.objects[n].parent = None
 # ---- tier 10: second ring -------------------------------------------------
 ring("Ring2", 0.6, 0.014, (0, 0.32, 1.5), (math.pi / 2, math.radians(25), 0), M["white"], 10)
 
+# ---- theme motifs: small, spin with the turntable, count grows with tier --
+# 12 per theme; motif k first shows at MOTIF_TIERS[k] -> 2 at tier 0, 12 at tier 10.
+MOTIF_TIERS = [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+def flower(bm, R):  # 5-petal blossom, flat on XY
+    n = 40
+    c = bm.verts.new((0, 0, 0))
+    rim = [bm.verts.new((R * (0.35 + 0.65 * abs(math.cos(2.5 * a))) * math.cos(a),
+                         R * (0.35 + 0.65 * abs(math.cos(2.5 * a))) * math.sin(a), 0))
+           for a in (2 * math.pi * i / n for i in range(n))]
+    for i in range(n): bm.faces.new((c, rim[i], rim[(i + 1) % n]))
+def leaf(bm, L, w):  # pointed lens, flat on XY, along +X
+    n = 8
+    top = [bm.verts.new((L * i / n, w * math.sin(math.pi * i / n) ** 0.8, 0)) for i in range(n + 1)]
+    bot = [bm.verts.new((L * i / n, -w * math.sin(math.pi * i / n) ** 0.8, 0)) for i in range(1, n)]
+    bm.faces.new(top + bot[::-1])
+for th, P in THEMES.items():
+    kind = P["motif"]
+    if not kind: continue
+    rng = random.Random(th)  # str seeds are deterministic across runs
+    for k, tier in enumerate(MOTIF_TIERS):
+        a = k * 2.39996 + rng.uniform(-0.2, 0.2)  # golden-angle spread around the figure
+        rad = rng.uniform(0.5, 0.7)
+        z = 0.35 + (k * 0.618 % 1.0) * 1.75
+        bm = bmesh.new()
+        if kind == "petal":
+            flower(bm, rng.uniform(0.045, 0.06)); m0 = M["petal"]
+        elif kind == "leaf":
+            leaf(bm, rng.uniform(0.09, 0.12), 0.03); m0 = M["leaf"]
+        elif kind == "bubble":
+            r_ = rng.uniform(0.022, 0.04); blob(bm, (0, 0, 0), (r_, r_, r_), sub=2); m0 = M["bubble"]
+        else:  # spark: thin vertical diamond; sparks rise, so they sit a bit higher
+            octa(bm, (0, 0, 0), 0.012, rng.uniform(0.03, 0.045)); m0 = M["spark"] if k % 3 else M["spark2"]
+            z = 0.6 + (k * 0.618 % 1.0) * 1.6
+        o = mesh_obj(f"Motif_{th}_{k}", bm, m0, flat=kind != "bubble")
+        o.location = (rad * math.cos(a), rad * math.sin(a), z)
+        if kind in ("petal", "leaf"):
+            o.rotation_euler = (rng.uniform(0.6, 1.3), rng.uniform(-0.6, 0.6), rng.uniform(0, 6.28))
+            sm = o.modifiers.new("sol", "SOLIDIFY"); sm.thickness = 0.004
+        if kind == "petal":  # dark rose rim so petals read on the light background
+            o.data.materials.append(M["petal_edge"])
+            ol = o.modifiers.new("outline", "SOLIDIFY"); ol.thickness = -0.006; ol.offset = 1.0
+            ol.use_flip_normals = True; ol.material_offset = 1
+        tag(o, tier)["theme"] = th
+
 # ---- camera + lights ------------------------------------------------------
 target = Vector((0, 0, 1.2))
 pitch = math.radians(6)  # slightly below eye level, looking up = heroic
@@ -262,20 +351,19 @@ cam.location = target + Vector((0, -10 * math.cos(pitch), -10 * math.sin(pitch))
 cam.rotation_euler = (math.pi / 2 + pitch, 0, 0)
 scene.camera = cam
 
-def light(name, kind, energy, color, loc, size=1.0):
-    d = bpy.data.lights.new(name, kind); d.energy = energy; d.color = color[:3]
+def light(name, kind, energy, loc, size=1.0):
+    d = bpy.data.lights.new(name, kind); d.energy = energy
     if kind == "AREA": d.size = size
     o = bpy.data.objects.new(name, d); col.objects.link(o); o.location = loc
     o.rotation_euler = (target - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
     return o
-light("RimBlue", "AREA", 450, ICE, (-1.8, 2.2, 2.3), 1.5)
-light("RimPurple", "AREA", 500, PURPLE_SOFT, (1.9, 2.0, 1.4), 1.5)
-light("Key", "AREA", 70, hx("#C9C2E8"), (1.2, -2.5, 2.6), 2.0)
-light("Under", "AREA", 30, PURPLE_HI, (0, -1.5, -0.3), 1.0)
+light("RimBlue", "AREA", 450, (-1.8, 2.2, 2.3), 1.5)    # colour = theme glow
+light("RimPurple", "AREA", 500, (1.9, 2.0, 1.4), 1.5)   # colour = theme soft
+light("Key", "AREA", 70, (1.2, -2.5, 2.6), 2.0)
+light("Under", "AREA", 30, (0, -1.5, -0.3), 1.0)        # colour = theme hi
 
 world = bpy.data.worlds.new("W"); scene.world = world
 world.use_nodes = True
-world.node_tree.nodes["Background"].inputs[0].default_value = hx("#120A24")
 world.node_tree.nodes["Background"].inputs[1].default_value = 0.4
 
 # ---- render settings ------------------------------------------------------
@@ -318,63 +406,90 @@ L.new(gl.outputs["Image"], sa.inputs["Image"]); L.new(mn.outputs[0], sa.inputs["
 sa.inputs["Type"].default_value = "Replace Alpha"
 L.new(sa.outputs[0], out.inputs[0])
 
-# ---- per-tier state -------------------------------------------------------
+# ---- per-theme / per-tier state -------------------------------------------
+TH = {}
+def set_theme(name):
+    P = THEMES[name]
+    TH.clear(); TH.update(P); TH["name"] = name
+    apply_materials(P)
+    c, Ls = cols(P), bpy.data.lights
+    Ls["RimBlue"].color, Ls["RimPurple"].color = c["glow"][:3], c["soft"][:3]
+    Ls["Key"].color, Ls["Under"].color = c["key"][:3], c["hi"][:3]
+    Ls["Key"].energy = 70 * P.get("key_k", 1.0)
+    world.node_tree.nodes["Background"].inputs[0].default_value = c["world"]
+
 def set_tier(t):
     for o in bpy.data.objects:
         if "tier" not in o: continue
-        o.hide_render = not (o["tier"] <= t <= o["until"])
+        o.hide_render = not (o["tier"] <= t <= o["until"]) or o.get("theme", TH["name"]) != TH["name"]
         if "light" in o:
             o.data.materials[0] = M[o["light"]] if t >= 10 else bpy.data.materials[o["dark"]]
     lift.location.z = 0.18 if t >= 9 else 0.0
-    aura.show_render = t >= 9
+    outline = "outline" in TH  # light themes: thin toon outline at every tier
+    aura.show_render = t >= 9 or outline
+    aura.thickness = (-0.011 if t >= 9 else -0.008) if outline else -0.015
     # dormant form is dimmer: weaker rim lights
-    bpy.data.lights["RimBlue"].energy = 250 if t == 0 else 450
-    bpy.data.lights["RimPurple"].energy = 280 if t == 0 else 500
-    M["body"].node_tree.nodes["rim"].inputs[1].default_value = 0.35 if t == 0 else 0.9
-    gl.inputs["Strength"].default_value = 0.6 if t < 9 else 0.9
+    rk = TH.get("rim_k", 1.0)
+    bpy.data.lights["RimBlue"].energy = (250 if t == 0 else 450) * rk
+    bpy.data.lights["RimPurple"].energy = (280 if t == 0 else 500) * rk
+    M["body"].node_tree.nodes["rim"].inputs[1].default_value = (0.35 if t == 0 else 0.9) * TH.get("body_rim", 1.0)
+    gl.inputs["Strength"].default_value = (0.6 if t < 9 else 0.9) * TH.get("glare", 1.0)
 
 # ---- render loop ----------------------------------------------------------
 t0 = time.time()
-for t in TIERS:
-    set_tier(t)
-    os.makedirs(os.path.join(OUT, f"t{t}"), exist_ok=True)
-    for f in FRAME_LIST:
-        pivot.rotation_euler.z = math.radians(15 * f)
-        r.filepath = os.path.join(OUT, f"t{t}", f"{f:02d}.webp")
-        bpy.ops.render.render(write_still=True)
-    print(f"[forms] tier {t} done, {time.time() - t0:.0f}s elapsed", flush=True)
+for th in THEME_LIST:
+    set_theme(th)
+    for t in TIERS:
+        set_tier(t)
+        os.makedirs(os.path.join(OUT, th, f"t{t}"), exist_ok=True)
+        for f in FRAME_LIST:
+            pivot.rotation_euler.z = math.radians(15 * f)
+            r.filepath = os.path.join(OUT, th, f"t{t}", f"{f:02d}.webp")
+            bpy.ops.render.render(write_still=True)
+        print(f"[forms] {th} tier {t} done, {time.time() - t0:.0f}s elapsed", flush=True)
 print(f"[forms] RENDER_SECONDS {time.time() - t0:.1f}", flush=True)
 
-# ---- formFrames.ts --------------------------------------------------------
+# ---- formFrames.ts (lists every theme, whichever were rendered this run) ---
 if FULL:
-    lines = ["// Generated by blender/forms.py. Do not edit.", "export const FORM_FRAMES: number[][] = ["]
-    for t in range(11):
-        reqs = ", ".join(f"require('../../assets/forms/t{t}/{f:02d}.webp')" for f in range(FRAMES))
-        lines.append(f"  [{reqs}],")
-    lines.append("];\n")
+    lines = ["// Generated by blender/forms.py. Do not edit.",
+             "export type ThemeId = " + " | ".join(f"'{t}'" for t in THEMES) + ";",
+             "export const THEME_FRAMES: Record<ThemeId, number[][]> = {"]
+    for th in THEMES:
+        lines.append(f"  {th}: [")
+        for t in range(11):
+            reqs = ", ".join(f"require('../../assets/forms/{th}/t{t}/{f:02d}.webp')" for f in range(FRAMES))
+            lines.append(f"    [{reqs}],")
+        lines.append("  ],")
+    lines += ["};", "export const FORM_FRAMES: number[][] = THEME_FRAMES.darkness;", ""]
     with open(os.path.join(APP, "src", "ui", "formFrames.ts"), "w", newline="\n") as fh:
         fh.write("\n".join(lines))
 
-# ---- contact sheet --------------------------------------------------------
+# ---- contact sheets -------------------------------------------------------
 if SHEET:
     import numpy as np
-    tw, th = W // 2, H // 2
-    tiers = sorted(int(d[1:]) for d in os.listdir(OUT) if d.startswith("t") and d[1:].isdigit())
-    sheet = np.zeros((th * 2, tw * len(tiers), 4), dtype=np.float32)
-    sheet[...] = (3 / 255, 3 / 255, 8 / 255, 1)
-    for i, t in enumerate(tiers):
-        for j, f in enumerate((0, 6)):
-            p = os.path.join(OUT, f"t{t}", f"{f:02d}.webp")
-            if not os.path.exists(p): continue
-            img = bpy.data.images.load(p); img.colorspace_settings.name = "Non-Color"
-            px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
-            px = px.reshape(th, 2, tw, 2, 4).mean(axis=(1, 3))
-            a = px[..., 3:4]
-            y0 = (1 - j) * th  # pixel rows run bottom-up
-            tile = sheet[y0:y0 + th, i * tw:(i + 1) * tw]
-            tile[..., :3] = tile[..., :3] * (1 - a) + px[..., :3] * a
-    out_img = bpy.data.images.new("sheet", sheet.shape[1], sheet.shape[0], alpha=True)
-    out_img.colorspace_settings.name = "Non-Color"
-    out_img.pixels = sheet.ravel()
-    out_img.filepath_raw = SHEET; out_img.file_format = "PNG"; out_img.save()
-    print(f"[forms] sheet -> {SHEET}", flush=True)
+    tw, thh = W // 2, H // 2
+    for th in THEME_LIST:
+        root = os.path.join(OUT, th)
+        tiers = sorted(int(d[1:]) for d in os.listdir(root) if d.startswith("t") and d[1:].isdigit())
+        sheet = np.zeros((thh * 2, tw * len(tiers), 4), dtype=np.float32)
+        bg = THEMES[th]["bg"].lstrip("#")
+        sheet[...] = (*(int(bg[i:i + 2], 16) / 255 for i in (0, 2, 4)), 1)
+        for i, t in enumerate(tiers):
+            for j, f in enumerate((0, 6)):
+                p = os.path.join(root, f"t{t}", f"{f:02d}.webp")
+                if not os.path.exists(p): continue
+                img = bpy.data.images.load(p); img.colorspace_settings.name = "Non-Color"
+                px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
+                bpy.data.images.remove(img)
+                px = px.reshape(thh, 2, tw, 2, 4).mean(axis=(1, 3))
+                a = px[..., 3:4]
+                y0 = (1 - j) * thh  # pixel rows run bottom-up
+                tile = sheet[y0:y0 + thh, i * tw:(i + 1) * tw]
+                tile[..., :3] = tile[..., :3] * (1 - a) + px[..., :3] * a
+        out_img = bpy.data.images.new(f"sheet_{th}", sheet.shape[1], sheet.shape[0], alpha=True)
+        out_img.colorspace_settings.name = "Non-Color"
+        out_img.pixels = sheet.ravel()
+        dst = os.path.join(SHEET, f"forms-sheet-{th}.png")
+        out_img.filepath_raw = dst; out_img.file_format = "PNG"; out_img.save()
+        bpy.data.images.remove(out_img)
+        print(f"[forms] sheet -> {dst}", flush=True)
