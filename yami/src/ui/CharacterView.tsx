@@ -1,5 +1,6 @@
 // The player's character: a Blender turntable (blender/forms.py), 24 angles per form.
 // Drag to spin (UI thread: a shared value picks the visible frame), it coasts after a flick and idles in a slow turn.
+// A themed, animated Aura sits behind the sprite.
 import { useEffect } from 'react';
 import { Image, View } from 'react-native';
 import Animated, { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withDecay, withRepeat, withTiming, type SharedValue } from 'react-native-reanimated';
@@ -7,6 +8,7 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import * as F from './formFrames';
 import type { ThemeId } from '../domain/types';
 import { useTheme } from './theme';
+import { Aura } from './Aura';
 
 const PX_PER_FRAME = 10;
 const IDLE_MS_PER_TURN = 14000;
@@ -52,6 +54,7 @@ export function CharacterView({ tier, size = 120, spin = true }: { tier: number;
   return (
     <GestureDetector gesture={pan}>
       <View style={{ width: w, height: h }} accessibilityLabel={`Character, form ${tier}. Drag to spin.`} testID="character">
+        <Aura tier={tier} width={w} height={h} />
         {frames.map((src, k) => <Frame key={k} k={k} n={n} angle={angle} src={src} w={w} h={h} />)}
       </View>
     </GestureDetector>
