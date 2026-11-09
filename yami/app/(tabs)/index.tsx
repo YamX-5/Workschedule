@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useYami, todayKey } from '@/src/data/store';
 import { frictionSec, minutesLeft, phoneState } from '@/src/domain/budget';
@@ -11,11 +11,14 @@ import { Bar, Radar, Row, Screen, Shield } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { success } from '@/src/ui/motion';
 import { fmtMin } from '@/src/ui/format';
+import { themed, useColors } from '@/src/ui/theme';
 
 export default function Status() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const report = useYami(s => s.report);
   const addUsage = useYami(s => s.addUsage);
@@ -122,11 +125,11 @@ export default function Status() {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   sub: { marginTop: space.s2, fontSize: 13, color: colors.white3 },
   hint: { marginTop: space.s3, fontSize: 12, color: colors.ink2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space.s4 },
   dreamT: { fontFamily: font.textSemi, fontSize: 15, color: colors.white, flexShrink: 1 },
   sub2: { fontSize: 12, color: colors.white3 },
   debuff: { fontSize: 11, color: colors.purpleSoft, fontWeight: '700' },
-});
+}));

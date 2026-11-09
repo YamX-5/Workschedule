@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useYami } from '@/src/data/store';
 import { playerLevel, rankFor } from '@/src/domain/progress';
@@ -9,12 +9,15 @@ import { Bar, Row, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { fmtMin } from '@/src/ui/format';
 import { tap } from '@/src/ui/motion';
+import { themed, useColors } from '@/src/ui/theme';
 
 
 export default function Path() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const { width } = useWindowDimensions();
   const lvl = playerLevel(p);
@@ -105,9 +108,9 @@ function Stat({ k, v }: { k: string; v: string | number }) {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   rank: { width: 32, height: 32, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   rankT: { fontFamily: font.display, fontSize: 16, color: colors.black },
   dream: { gap: 6, paddingVertical: space.s3, borderTopWidth: 1, borderTopColor: colors.line },
   tag: { fontFamily: font.textBold, fontSize: 11, color: colors.black, backgroundColor: colors.blue, paddingHorizontal: 6, paddingVertical: 2 },
-});
+}));

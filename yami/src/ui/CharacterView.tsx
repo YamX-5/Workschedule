@@ -1,12 +1,19 @@
 // The player's character: a Blender turntable (blender/forms.py), 24 angles per form. Drag left/right to spin.
 import { useMemo, useRef, useState } from 'react';
 import { Image, PanResponder, View } from 'react-native';
-import { FORM_FRAMES } from './formFrames';
+import * as F from './formFrames';
+import type { ThemeId } from '../domain/types';
+import { useTheme } from './theme';
 
 const PX_PER_FRAME = 10;
 
+/** Per-theme turntables once blender/forms.py emits THEME_FRAMES; the single darkness set until then. */
+const framesFor = (theme: ThemeId): number[][] =>
+  (F as { THEME_FRAMES?: Partial<Record<ThemeId, number[][]>> }).THEME_FRAMES?.[theme] ?? F.FORM_FRAMES;
+
 export function CharacterView({ tier, size = 120, spin = true }: { tier: number; size?: number; spin?: boolean }) {
-  const frames = FORM_FRAMES[Math.max(0, Math.min(FORM_FRAMES.length - 1, tier))];
+  const all = framesFor(useTheme().id);
+  const frames = all[Math.max(0, Math.min(all.length - 1, tier))];
   const n = frames.length;
   const [i, setI] = useState(0);
   const start = useRef(0);

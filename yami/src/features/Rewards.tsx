@@ -8,14 +8,17 @@ import { formFor } from '@/src/domain/forms';
 import { playerLevel } from '@/src/domain/progress';
 import { T } from '@/src/ui/Text';
 import { Button } from '@/src/ui/Button';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { success } from '@/src/ui/motion';
 import { CharacterView } from '@/src/ui/CharacterView';
+import { themed, useColors } from '@/src/ui/theme';
 
 const GAIN_MS = 1800;
 
 export function GainToast() {
-  const gain = useYami(s => s.gain);
+  const colors = useColors();
+  const s = useS();
+  const gain = useYami(st => st.gain);
   const ins = useSafeAreaInsets();
   const [shown, setShown] = useState<number | null>(null);
   useEffect(() => {
@@ -38,9 +41,10 @@ export function GainToast() {
 }
 
 export function CelebrationOverlay() {
-  const c = useYami(s => s.celebration);
-  const level = useYami(s => playerLevel(s.profile));
-  const dismiss = useYami(s => s.dismissCelebration);
+  const s = useS();
+  const c = useYami(st => st.celebration);
+  const level = useYami(st => playerLevel(st.profile));
+  const dismiss = useYami(st => st.dismissCelebration);
   useEffect(() => { if (c) success(); }, [c]);
   if (!c) return null;
   const big = c.kind === 'form' || c.kind === 'dream';
@@ -60,15 +64,15 @@ export function CelebrationOverlay() {
 
 const KICKER = { level: 'Level up', form: 'Evolution', milestone: 'Dream progress', dream: 'Dream achieved' } as const;
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   toast: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s4, paddingVertical: space.s2, backgroundColor: colors.black, borderWidth: 1, borderColor: colors.blue, zIndex: 50 },
   xp: { fontFamily: font.display, fontSize: 15, color: colors.blue },
   stat: { fontFamily: font.textBold, fontSize: 12, letterSpacing: 1, color: colors.white },
   shards: { fontFamily: font.textBold, fontSize: 12, color: colors.purpleSoft },
   lvl: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 1, color: colors.black, backgroundColor: colors.blue, paddingHorizontal: 6, paddingVertical: 2 },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3,3,8,0.9)', alignItems: 'center', justifyContent: 'center', padding: space.s5, zIndex: 60 },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: space.s5, zIndex: 60 },
   card: { alignSelf: 'stretch', alignItems: 'center', gap: space.s2, padding: space.s5, backgroundColor: colors.black, borderWidth: 1, borderColor: colors.blue2 },
   kicker: { fontFamily: font.textBold, fontSize: 12, letterSpacing: 2, color: colors.blue, textTransform: 'uppercase' },
   title: { fontFamily: font.display, fontSize: 22, color: colors.white, textAlign: 'center' },
   sub: { fontFamily: font.text, fontSize: 15, color: colors.white2, textAlign: 'center' },
-});
+}));

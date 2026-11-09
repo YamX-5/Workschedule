@@ -6,7 +6,8 @@ import { HeroStage, Row } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
+import { useColors } from '@/src/ui/theme';
 
 const STEPS = [
   { title: 'You have been chosen.', body: 'Your days become quests. Your phone time becomes Corruption. The System is watching, and it keeps score.' },
@@ -15,6 +16,7 @@ const STEPS = [
 ];
 
 export default function Onboarding() {
+  const colors = useColors();
   const [i, setI] = useState(0);
   const finish = useYami(s => s.finishOnboarding);
   const done = () => { finish(); router.replace('/'); router.push('/protocol'); };

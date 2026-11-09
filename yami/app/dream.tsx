@@ -9,10 +9,12 @@ import { Button } from '@/src/ui/Button';
 import { Bar, Row, Segmented } from '@/src/ui/parts';
 import { CLEARS_PER_STEP, dreamProgress } from '@/src/domain/progress';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { fmtDate } from '@/src/ui/format';
+import { useColors } from '@/src/ui/theme';
 
 export default function DreamScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const p = useYami(s => s.profile);
   const { addDream, updateDream, completeMilestone, upsertQuest } = useYami.getState();

@@ -1,11 +1,12 @@
 import type { ComponentProps } from 'react';
 import { Tabs } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polygon, Rect } from 'react-native-svg';
-import { colors, font, space, TAB_BAR_H } from '@/src/ui/tokens';
+import { font, space, TAB_BAR_H } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
 import { tap } from '@/src/ui/motion';
+import { themed, useColors } from '@/src/ui/theme';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -31,6 +32,8 @@ function Icon({ name, c }: { name: string; c: string }) {
 }
 
 function TabBar({ state, navigateToTab }: BottomTabBarProps) {
+  const colors = useColors();
+  const s = useS();
   const ins = useSafeAreaInsets();
   return (
     <>
@@ -55,6 +58,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const colors = useColors();
   return (
     <Tabs tabBar={p => <TabBar {...p} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.black } }}>
       {TABS.map(t => <Tabs.Screen key={t.name} name={t.name} options={{ title: t.label }} />)}
@@ -62,10 +66,10 @@ export default function TabLayout() {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   backdrop: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.black },
-  bar: { position: 'absolute', left: space.s4, right: space.s4, height: TAB_BAR_H, flexDirection: 'row', padding: 6, gap: 4, backgroundColor: '#0B0915', borderWidth: 1, borderColor: colors.line },
+  bar: { position: 'absolute', left: space.s4, right: space.s4, height: TAB_BAR_H, flexDirection: 'row', padding: 6, gap: 4, backgroundColor: colors.bar, borderWidth: 1, borderColor: colors.line },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   on: { backgroundColor: colors.white },
   lbl: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' },
-});
+}));

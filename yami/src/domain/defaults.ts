@@ -22,6 +22,7 @@ export function defaultProtocol(): Protocol {
     city: 'Amman',
     coords: { lat: 31.95, lng: 35.93 },
     calcMethod: 'MuslimWorldLeague',
+    theme: 'darkness',
   };
 }
 

@@ -1,7 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colors, space } from './tokens';
+import { space } from './tokens';
+import { themed, useColors } from './theme';
 import { T } from './Text';
 import { useReduceMotion } from './motion';
 
@@ -9,6 +10,8 @@ import { useReduceMotion } from './motion';
 export function Window({ title, kana, meta, tone = 'glass', children, style }: {
   title?: string; kana?: string; meta?: ReactNode; tone?: 'glass' | 'white'; children: ReactNode; style?: ViewStyle;
 }) {
+  const colors = useColors();
+  const s = useS();
   const rm = useReduceMotion();
   const open = useSharedValue(rm ? 1 : 0.02);
   useEffect(() => {
@@ -33,6 +36,7 @@ export function Window({ title, kana, meta, tone = 'glass', children, style }: {
 }
 
 function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const s = useS();
   const top = pos[0] === 't', left = pos[1] === 'l';
   return (
     <View pointerEvents="none" style={[s.corner, {
@@ -42,7 +46,7 @@ function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   win: { padding: space.s4, borderWidth: 1 },
   glass: { backgroundColor: colors.glass, borderColor: colors.line },
   light: { backgroundColor: colors.white, borderColor: colors.white },
@@ -50,4 +54,4 @@ const s = StyleSheet.create({
   title: { fontSize: 12 },
   meta: { fontSize: 13, color: colors.white3 },
   corner: { position: 'absolute', width: 14, height: 14, borderColor: colors.blue },
-});
+}));

@@ -5,15 +5,17 @@ import { useYami } from '@/src/data/store';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { fmtMin } from '@/src/ui/format';
 import { success } from '@/src/ui/motion';
+import { useColors } from '@/src/ui/theme';
 
 export const ALWAYS_OPEN = ['Phone', 'Messages', 'Maps', 'Quran', 'Bank'];
 const REASONS = ['Work message', 'Family', 'Navigation', 'Payment', 'Other need'];
 const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 export function Intrusion({ delay, used, cap }: { delay: number; used: number; cap: number }) {
+  const colors = useColors();
   const addUsage = useYami(s => s.addUsage);
   const [left, setLeft] = useState(delay);
   useEffect(() => {
@@ -34,6 +36,7 @@ export function Intrusion({ delay, used, cap }: { delay: number; used: number; c
 }
 
 export function LimitReached() {
+  const colors = useColors();
   const p = useYami(s => s.profile);
   const openReserve = useYami(s => s.openReserve);
   const [reason, setReason] = useState<string>();
@@ -50,6 +53,7 @@ export function LimitReached() {
 }
 
 export function Sealed() {
+  const colors = useColors();
   return (
     <Window title="Sealed until Fajr" tone="white">
       <T v="display" style={{ color: colors.ink, fontSize: 18, lineHeight: 28 }}>SEALED UNTIL FAJR</T>

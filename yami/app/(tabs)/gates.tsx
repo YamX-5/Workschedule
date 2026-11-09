@@ -6,14 +6,17 @@ import type { GateMark } from '@/src/domain/types';
 import { Bar, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { fmtMin, fmtTime } from '@/src/ui/format';
 import { tap } from '@/src/ui/motion';
 import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
+import { themed, useColors } from '@/src/ui/theme';
 
 const MARK: Record<GateMark, string> = { pending: '—', ontime: 'ON TIME', late: 'LATE', miss: 'MISSED' };
 
 export default function Gates() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const cycle = useYami(s => s.cycleGate);
   const [now, setNow] = useState(new Date());
@@ -67,6 +70,7 @@ const INNER = 'M14 112 L14 47 A30 30 0 0 1 74 47 L74 112 Z';
 
 /** A gate drawn as a portal: dark and sealed until prayed, glowing open when prayed on time. */
 function Portal({ mark, next, id }: { mark: GateMark; next: boolean; id: string }) {
+  const colors = useColors();
   const open = mark === 'ontime' || mark === 'late';
   const core = mark === 'ontime' ? colors.blue : mark === 'late' ? colors.purpleSoft : colors.purple;
   const rim = mark === 'miss' ? colors.line : next ? colors.blue : open ? core : colors.blue2;
@@ -90,7 +94,7 @@ function Portal({ mark, next, id }: { mark: GateMark; next: boolean; id: string 
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   portalBox: { width: 88, height: 122, alignItems: 'center', justifyContent: 'center', paddingTop: 18 },
   next: { flexDirection: 'row', alignItems: 'flex-end', gap: space.s3 },
   nextT: { fontFamily: font.display, fontSize: 22, color: colors.ink },
@@ -102,4 +106,4 @@ const s = StyleSheet.create({
   gAr: { fontSize: 18, fontWeight: '700', color: colors.white },
   gEn: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 1, color: colors.white2 },
   gMark: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, color: colors.blue },
-});
+}));

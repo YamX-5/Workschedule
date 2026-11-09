@@ -4,7 +4,8 @@ import type { Quest } from '@/src/domain/types';
 import type { QuestResult, Verdict } from '@/src/domain/judgment';
 import { T } from '@/src/ui/Text';
 import { Row } from '@/src/ui/parts';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
+import { useColors } from '@/src/ui/theme';
 
 const LABEL: Record<Verdict, string> = { cleared: 'CLEARED', confessed: 'CONFESSED', late: 'LATE', unreported: 'UNREPORTED' };
 const signed = (n: number) => (n >= 0 ? `+${n}` : `−${Math.abs(n)}`);
@@ -12,6 +13,7 @@ const signed = (n: number) => (n >= 0 ? `+${n}` : `−${Math.abs(n)}`);
 export function VerdictList({ results, quests, statName, reduceMotion }: {
   results: QuestResult[]; quests: Quest[]; statName: (s: QuestResult['stat']) => string; reduceMotion?: boolean;
 }) {
+  const colors = useColors();
   return (
     <View style={{ gap: space.s2 }}>
       {results.map((r, i) => (

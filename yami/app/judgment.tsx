@@ -12,10 +12,12 @@ import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { Row } from '@/src/ui/parts';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { success, useReduceMotion, warn } from '@/src/ui/motion';
+import { useColors } from '@/src/ui/theme';
 
 export default function Judgment() {
+  const colors = useColors();
   const out = useYami(s => s.lastJudgment);
   const p = useYami(s => s.profile);
   const rm = useReduceMotion();
@@ -92,6 +94,7 @@ export default function Judgment() {
 }
 
 function Tally({ k, v }: { k: string; v: number }) {
+  const colors = useColors();
   return (
     <View style={{ alignItems: 'center', gap: 4 }}>
       <T v="num" style={{ color: v < 0 ? colors.purpleSoft : colors.white }}>{v >= 0 ? `+${v}` : `−${Math.abs(v)}`}</T>

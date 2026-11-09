@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import type { Quest, Report } from '@/src/domain/types';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { T } from '@/src/ui/Text';
 import { Button } from '@/src/ui/Button';
+import { themed, useColors } from '@/src/ui/theme';
 
 export function reportLabel(q: Quest, r?: Report): string | null {
   if (!r) return null;
@@ -14,6 +15,8 @@ export function reportLabel(q: Quest, r?: Report): string | null {
 export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
   quest: Quest; report?: Report; dream?: string; onDone: () => void; onDidnt: () => void;
 }) {
+  const colors = useColors();
+  const s = useS();
   const label = reportLabel(quest, report);
   const xp = quest.type === 'count' ? `+${quest.xp}×${quest.target}` : `+${quest.xp}`;
   return (
@@ -34,7 +37,7 @@ export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: space.s3, borderTopWidth: 1, borderTopColor: colors.inkLine },
   title: { fontFamily: font.textSemi, fontSize: 15, color: colors.ink },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -43,4 +46,4 @@ const s = StyleSheet.create({
   state: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, color: colors.white, backgroundColor: colors.black, paddingHorizontal: 6, paddingVertical: 3 },
   dream: { fontFamily: font.text, fontSize: 13, color: colors.purple },
   b: { minWidth: 64 },
-});
+}));

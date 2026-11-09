@@ -6,11 +6,13 @@ import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { Row } from '@/src/ui/parts';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { space } from '@/src/ui/tokens';
 import { fmtDate } from '@/src/ui/format';
 import { success } from '@/src/ui/motion';
+import { useColors } from '@/src/ui/theme';
 
 export default function Shop() {
+  const colors = useColors();
   const p = useYami(s => s.profile);
   const { upsertReward, deleteReward, claimReward } = useYami.getState();
   const [title, setTitle] = useState('');

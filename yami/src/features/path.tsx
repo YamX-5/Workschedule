@@ -6,13 +6,15 @@ import { RECORD_TEXT } from '@/src/domain/progress';
 import { weekday } from '@/src/domain/time';
 import { T } from '@/src/ui/Text';
 import { Row } from '@/src/ui/parts';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { fmtDate } from '@/src/ui/format';
+import { useColors } from '@/src/ui/theme';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /** Phone minutes per day for the last 7 judged days, with a cap line. */
 export function WeekChart({ history, capMin, width = 300 }: { history: DaySummary[]; capMin: number; width?: number }) {
+  const colors = useColors();
   const days = history.slice(-7);
   const H = 120, top = 14, base = H - 18;
   const max = Math.max(capMin * 1.25, ...days.map(d => d.usedMin), 1);
@@ -38,6 +40,7 @@ export function WeekChart({ history, capMin, width = 300 }: { history: DaySummar
 
 /** 66 cells: held (blue), failed (purple), today onward (empty). */
 export function ArcGrid({ history }: { history: DaySummary[] }) {
+  const colors = useColors();
   const last = history.slice(-66);
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }} accessibilityLabel={`${last.filter(d => d.held).length} of 66 days held`}>
@@ -50,6 +53,7 @@ export function ArcGrid({ history }: { history: DaySummary[] }) {
 }
 
 export function RecordList({ records }: { records: Partial<Record<RecordId, number>> }) {
+  const colors = useColors();
   const ids = Object.keys(RECORD_TEXT) as RecordId[];
   return (
     <View style={{ gap: space.s3 }}>

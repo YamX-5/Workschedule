@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { HOLD_SEC, EARN_PER_SET, useHoldTimer } from '@/src/features/useHoldTimer';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useYami, todayKey, EARN_CAP_MIN } from '@/src/data/store';
 import { Bar, Row, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, font, space } from '@/src/ui/tokens';
+import { font, space } from '@/src/ui/tokens';
 import { success } from '@/src/ui/motion';
+import { themed, useColors } from '@/src/ui/theme';
 
 export default function Quest() {
+  const colors = useColors();
+  const s = useS();
   const p = useYami(s => s.profile);
   const report = useYami(s => s.report);
   const earn = useYami(s => s.earnMinutes);
@@ -65,7 +68,7 @@ export default function Quest() {
   );
 }
 
-const s = StyleSheet.create({
+const useS = themed(colors => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.s4, flexWrap: 'wrap' },
   center: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' },
   num: { fontFamily: font.display, fontSize: 34, lineHeight: 42, color: colors.ink },
@@ -77,4 +80,4 @@ const s = StyleSheet.create({
   pip: { flex: 1, height: 6, backgroundColor: colors.inkLine },
   reward: { minHeight: 20, marginTop: space.s3, textAlign: 'center', fontFamily: font.textSemi, fontSize: 13, color: colors.purple },
   disc: { marginTop: space.s2, textAlign: 'center', fontSize: 12, color: colors.ink2 },
-});
+}));
