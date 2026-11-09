@@ -107,6 +107,34 @@ export const unlock = (p0: Profile, now: number): Profile => {
 export const MAX_ACTIVE_DREAMS = 3;
 const activeCount = (p: Profile) => p.dreams.filter(d => d.active && !d.achievedAt).length;
 
+/** Linked-quest clears needed to fill the bar up to the next milestone. */
+export const CLEARS_PER_STEP = 10;
+const DAY_MS = 86_400_000;
+
+/**
+ * Dream progress: each confirmed milestone is one step; quest clears linked to the dream
+ * fill the current step (capped, so only confirming the milestone completes it).
+ */
+export function dreamProgress(p: Profile, d: Dream, now = Date.now()) {
+  const total = Math.max(1, d.milestones.length);
+  const done = d.milestones.filter(m => m.doneAt).length;
+  const since = Math.max(d.createdAt, ...d.milestones.map(m => m.doneAt ?? 0));
+  const linked = new Set(p.quests.filter(q => q.dreamId === d.id).map(q => q.id));
+  const clears = p.reports.filter(r => linked.has(r.questId) && r.kind === 'done' && r.at > since
+    && r.units >= (p.quests.find(q => q.id === r.questId)?.target ?? 1)).length;
+  const step = done >= total ? 0 : Math.min(1, clears / CLEARS_PER_STEP);
+  const value = Math.min(1, (done + step) / total);
+  let daysLeft: number | undefined;
+  let onPace: boolean | undefined;
+  if (d.due && !d.achievedAt) {
+    const end = new Date(`${d.due}T23:59:59`).getTime();
+    daysLeft = Math.ceil((end - now) / DAY_MS);
+    const expected = (now - d.createdAt) / Math.max(DAY_MS, end - d.createdAt);
+    onPace = value + 0.05 >= expected;
+  }
+  return { value, done, total, clears: Math.min(clears, CLEARS_PER_STEP), daysLeft, onPace };
+}
+
 export function addDream(p: Profile, d: Dream): Profile | 'too-many' {
   if (d.active && activeCount(p) >= MAX_ACTIVE_DREAMS) return 'too-many';
   return { ...p, dreams: [...p.dreams, d] };

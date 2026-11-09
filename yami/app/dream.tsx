@@ -6,7 +6,8 @@ import { STAT_IDS, type Dream, type StatId } from '@/src/domain/types';
 import { ModalScreen, Field } from '@/src/ui/ModalScreen';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
-import { Row, Segmented } from '@/src/ui/parts';
+import { Bar, Row, Segmented } from '@/src/ui/parts';
+import { CLEARS_PER_STEP, dreamProgress } from '@/src/domain/progress';
 import { T } from '@/src/ui/Text';
 import { colors, space } from '@/src/ui/tokens';
 import { fmtDate } from '@/src/ui/format';
@@ -18,6 +19,8 @@ export default function DreamScreen() {
   const existing = p.dreams.find(d => d.id === id);
   const [title, setTitle] = useState(existing?.title ?? '');
   const [why, setWhy] = useState(existing?.why ?? '');
+  const [due, setDue] = useState(existing?.due ?? '');
+  const dueOk = !due || (/^\d{4}-\d{2}-\d{2}$/.test(due) && !isNaN(new Date(`${due}T12:00:00`).getTime()));
   const [stat, setStat] = useState<StatId>(existing?.stat ?? 'body');
   const [steps, setSteps] = useState<string[]>(existing ? [] : ['', '', '']);
   const [linked, setLinked] = useState<string[]>(p.quests.filter(q => q.dreamId && q.dreamId === id).map(q => q.id));
@@ -26,10 +29,12 @@ export default function DreamScreen() {
 
   const save = () => {
     if (!title.trim()) { setErr('Name the dream'); return; }
+    if (!dueOk) return;
     const newSteps = steps.map(t => t.trim()).filter(Boolean).map(t => ({ id: uid(), title: t }));
+    const base = { title: title.trim(), why: why.trim(), stat, due: due || undefined };
     const d: Dream = existing
-      ? { ...existing, title: title.trim(), why: why.trim(), stat, milestones: [...existing.milestones, ...newSteps] }
-      : { id: uid(), title: title.trim(), why: why.trim(), stat, milestones: newSteps, createdAt: Date.now(), active: true };
+      ? { ...existing, ...base, milestones: [...existing.milestones, ...newSteps] }
+      : { id: uid(), ...base, milestones: newSteps, createdAt: Date.now(), active: true };
     if (!d.milestones.length) { setErr('Add at least one milestone'); return; }
     if (existing) updateDream(d);
     else if (!addDream(d)) { setErr('3 dreams are already active. Finish or pause one first.'); return; }
@@ -47,6 +52,8 @@ export default function DreamScreen() {
         <View style={{ gap: space.s3 }}>
           <Field label="Dream" value={title} onChangeText={t => { setTitle(t); setErr(''); }} placeholder="Athletic again" error={err && !title.trim() ? err : undefined} />
           <Field label="Why it matters" value={why} onChangeText={setWhy} placeholder="Play a full game with no knee pain" />
+          <Field label="Target date (optional)" value={due} onChangeText={setDue} placeholder="2027-06-01" maxLength={10}
+            keyboardType="numbers-and-punctuation" error={dueOk ? undefined : 'Use YYYY-MM-DD, like 2027-06-01'} />
           <T v="label">Stat it grows</T>
           <Segmented label="Stat" value={stat} onChange={setStat} options={STAT_IDS.map(k => ({ v: k, label: p.stats[k].name.slice(0, 5) }))} />
         </View>
@@ -64,6 +71,18 @@ export default function DreamScreen() {
                   : <Button small variant="ghost" label="Done" onPress={() => setConfirm(m.id)} />}
               </Row>
             ))}
+            {(() => {
+              const pr = dreamProgress(p, existing);
+              return (
+                <View style={{ gap: 6, marginTop: space.s2 }}>
+                  <Bar value={pr.value} color={colors.blue} h={6} />
+                  <T style={{ fontSize: 12, color: colors.white2 }}>
+                    {Math.round(pr.value * 100)}% · {pr.clears}/{CLEARS_PER_STEP} linked quest clears toward the next milestone
+                    {pr.daysLeft !== undefined ? ` · ${pr.daysLeft >= 0 ? `${pr.daysLeft} days left` : `${-pr.daysLeft} days over`}, ${pr.onPace ? 'on pace' : 'behind pace'}` : ''}
+                  </T>
+                </View>
+              );
+            })()}
             <T style={{ fontSize: 12, color: colors.white3 }}>Each milestone: +100 XP to {p.stats[existing.stat].name}, +20 Shards. The last one: +100 Shards and a title.</T>
           </View>
         </Window>

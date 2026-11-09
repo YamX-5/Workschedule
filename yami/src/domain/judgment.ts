@@ -21,6 +21,17 @@ export function verdictFor(q: Quest, r: Report | undefined): Verdict {
 }
 
 const baseXp = (q: Quest, units: number) => (q.type === 'count' ? q.xp * Math.min(units, q.target) : q.xp);
+
+/** XP + Shards a report earns the moment it is made. Matches what Judgment would award, minus Judgment-only penalties. */
+export function instantReward(p: Profile, q: Quest, r: Report): { xp: number; shards: number } {
+  if (r.kind !== 'done' || r.units <= 0) return { xp: 0, shards: 0 };
+  let xp = baseXp(q, r.units);
+  if (r.late) xp = Math.round(xp * 0.5);
+  if (p.debuffs.some(d => d.stat === q.stat && d.dayKey === r.dayKey)) xp = Math.round(xp * FRACTURED);
+  const verdict = verdictFor(q, r);
+  const shards = verdict === 'cleared' ? Math.floor(xp / 10) : verdict === 'late' ? Math.floor(xp / 20) : 0;
+  return { xp, shards };
+}
 const clampHonor = (h: number) => Math.max(0, Math.min(100, h));
 const scheduled = (q: Quest, key: string) => q.days.includes(weekday(key));
 const reportFor = (p: Profile, q: Quest, key: string) => p.reports.find(r => r.questId === q.id && r.dayKey === key);
@@ -65,7 +76,9 @@ export function judgeDay(p: Profile, dayKey: string, now = Date.now()) {
   const stats = { ...p.stats };
   const levelChanges: Partial<Record<StatId, number>> = {};
   for (const r of results) {
-    const { stat, levelChange } = applyXp(stats[r.stat], r.xpDelta);
+    // XP banked at report time is already on the stat; settle only the rest.
+    const banked = p.reports.find(x => x.questId === r.questId && x.dayKey === dayKey)?.xp ?? 0;
+    const { stat, levelChange } = applyXp(stats[r.stat], r.xpDelta - banked);
     stats[r.stat] = stat;
     if (levelChange) levelChanges[r.stat] = (levelChanges[r.stat] ?? 0) + levelChange;
   }
@@ -87,7 +100,8 @@ export function judgeDay(p: Profile, dayKey: string, now = Date.now()) {
     ...profile,
     history: [...profile.history, summary],
     streak: nextStreak(profile.streak, summary.held),
-    shards: profile.shards + summary.shards,
+    shards: Math.max(0, profile.shards + summary.shards
+      - p.reports.filter(x => x.dayKey === dayKey).reduce((a, x) => a + (x.shards ?? 0), 0)),
   };
   profile = unlock(profile, now);
 

@@ -9,6 +9,7 @@ import { T } from '@/src/ui/Text';
 import { colors, font, space } from '@/src/ui/tokens';
 import { fmtMin, fmtTime } from '@/src/ui/format';
 import { tap } from '@/src/ui/motion';
+import Svg, { Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
 
 const MARK: Record<GateMark, string> = { pending: '—', ontime: 'ON TIME', late: 'LATE', miss: 'MISSED' };
 
@@ -35,7 +36,7 @@ export default function Gates() {
           <T style={s.ar}>{PRAYER_AR[next.name]}</T>
         </View>
         <Bar value={cleared / 5} color={colors.black} track={colors.inkLine} h={6} style={{ marginTop: space.s3 }} />
-        <T style={s.sub}>{cleared} of 5 gates cleared. Tap a gate to mark it: on time, late, missed.</T>
+        <T style={s.sub}>{cleared} of 5 gates open. Tap a portal to mark it: on time, late, missed. Each prayer pays XP instantly.</T>
       </Window>
 
       <View style={s.grid}>
@@ -45,12 +46,14 @@ export default function Gates() {
           return (
             <Pressable key={n} testID={`gate-${n}`} accessibilityRole="button" accessibilityLabel={`${n} ${MARK[g]}`}
               onPress={() => { tap(); cycle(i); }}
-              style={[s.gate, g === 'ontime' && { backgroundColor: colors.white }, g === 'late' && { backgroundColor: colors.blue3 },
-                g === 'miss' && { backgroundColor: colors.purple }, isNext && { borderColor: colors.blue, borderWidth: 2 }]}>
-              <T style={[s.gAr, g === 'ontime' && { color: colors.black }]}>{PRAYER_AR[n]}</T>
-              <T style={[s.gEn, g === 'ontime' && { color: colors.black }]}>{n.toUpperCase()}</T>
-              <T v="num" style={[{ fontSize: 12 }, g === 'ontime' && { color: colors.ink2 }]}>{fmtTime(times[n])}</T>
-              <T style={[s.gMark, g === 'ontime' && { color: colors.purple }]}>{isNext ? 'NEXT' : MARK[g]}</T>
+              style={s.gate}>
+              <View style={s.portalBox}>
+                <Portal mark={g} next={isNext} id={n} />
+                <T style={[s.gAr, g === 'ontime' && { color: colors.black }]}>{PRAYER_AR[n]}</T>
+              </View>
+              <T style={s.gEn}>{n.toUpperCase()}</T>
+              <T v="num" style={{ fontSize: 12 }}>{fmtTime(times[n])}</T>
+              <T style={[s.gMark, g === 'miss' && { color: colors.purpleSoft }]}>{isNext ? 'NEXT' : MARK[g]}</T>
             </Pressable>
           );
         })}
@@ -59,14 +62,43 @@ export default function Gates() {
   );
 }
 
+const ARCH = 'M6 118 L6 46 A38 38 0 0 1 82 46 L82 118 Z';
+const INNER = 'M14 112 L14 47 A30 30 0 0 1 74 47 L74 112 Z';
+
+/** A gate drawn as a portal: dark and sealed until prayed, glowing open when prayed on time. */
+function Portal({ mark, next, id }: { mark: GateMark; next: boolean; id: string }) {
+  const open = mark === 'ontime' || mark === 'late';
+  const core = mark === 'ontime' ? colors.blue : mark === 'late' ? colors.purpleSoft : colors.purple;
+  const rim = mark === 'miss' ? colors.line : next ? colors.blue : open ? core : colors.blue2;
+  return (
+    <Svg width={88} height={122} viewBox="0 0 88 122" style={StyleSheet.absoluteFill}>
+      <Defs>
+        <RadialGradient id={`pg-${id}`} cx="50%" cy="58%" r="60%">
+          <Stop offset="0" stopColor={core} stopOpacity={open ? 1 : 0.35} />
+          <Stop offset="0.55" stopColor={core} stopOpacity={open ? 0.45 : 0.12} />
+          <Stop offset="1" stopColor={colors.black} stopOpacity={0.9} />
+        </RadialGradient>
+      </Defs>
+      {open && <Path d={ARCH} fill={core} opacity={0.18} transform="translate(44 64) scale(1.08) translate(-44 -64)" />}
+      <Path d={ARCH} fill={colors.black} stroke={rim} strokeWidth={next || open ? 2.5 : 1.5} />
+      <Path d={INNER} fill={mark === 'miss' ? colors.black : `url(#pg-${id})`} stroke={rim} strokeWidth={0.8} opacity={0.95} />
+      {open && [0, 1, 2].map(k => (
+        <Ellipse key={k} cx={44} cy={72} rx={22 - k * 7} ry={30 - k * 9} stroke={colors.white} strokeWidth={0.8} fill="none" opacity={0.5 - k * 0.12} />
+      ))}
+      {mark === 'miss' && <Path d="M24 60 L64 104 M64 60 L24 104" stroke={colors.purpleSoft} strokeWidth={1.5} opacity={0.6} />}
+    </Svg>
+  );
+}
+
 const s = StyleSheet.create({
+  portalBox: { width: 88, height: 122, alignItems: 'center', justifyContent: 'center', paddingTop: 18 },
   next: { flexDirection: 'row', alignItems: 'flex-end', gap: space.s3 },
   nextT: { fontFamily: font.display, fontSize: 22, color: colors.ink },
   in: { fontFamily: font.text, fontSize: 15, color: colors.ink2, marginTop: 4 },
   ar: { fontSize: 28, fontWeight: '700', color: colors.purple },
   sub: { fontSize: 13, color: colors.ink2, marginTop: space.s2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 },
-  gate: { flexGrow: 1, flexBasis: '30%', minHeight: 112, alignItems: 'center', justifyContent: 'center', gap: 4, padding: space.s2, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.line },
+  gate: { flexGrow: 1, flexBasis: '30%', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: space.s3, paddingHorizontal: space.s2, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.line },
   gAr: { fontSize: 18, fontWeight: '700', color: colors.white },
   gEn: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 1, color: colors.white2 },
   gMark: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, color: colors.blue },

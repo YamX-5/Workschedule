@@ -7,7 +7,7 @@ import { Button } from '@/src/ui/Button';
 export function reportLabel(q: Quest, r?: Report): string | null {
   if (!r) return null;
   if (r.kind === 'didnt') return 'CONFESSED';
-  if (r.units < q.target) return 'PARTIAL · CONFESSED';
+  if (r.units < q.target) return 'IN PROGRESS';
   return r.late ? 'LATE REPORT' : 'CLEARED';
 }
 
@@ -27,7 +27,8 @@ export function QuestRow({ quest, report, dream, onDone, onDidnt }: {
         </View>
         {dream ? <T style={s.dream} numberOfLines={1}>Toward: {dream}</T> : null}
       </View>
-      <Button small variant="dark" label="Done" onPress={onDone} testID={`done-${quest.id}`} style={s.b} />
+      <Button small variant="dark" label={quest.type === 'count' ? '+1' : 'Done'} onPress={onDone} testID={`done-${quest.id}`} style={s.b}
+        disabled={report?.kind === 'done' && report.units >= quest.target} />
       <Button small variant="outline" label="Didn't" onPress={onDidnt} testID={`didnt-${quest.id}`} style={s.b} />
     </View>
   );

@@ -1,8 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useYami, todayKey } from '@/src/data/store';
 import { frictionSec, minutesLeft, phoneState } from '@/src/domain/budget';
-import { playerLevel, rankFor } from '@/src/domain/progress';
+import { CLEARS_PER_STEP, dreamProgress, playerLevel, rankFor } from '@/src/domain/progress';
 import { xpToNext } from '@/src/domain/xp';
 import { weekday } from '@/src/domain/time';
 import { STAT_IDS } from '@/src/domain/types';
@@ -11,7 +11,7 @@ import { Bar, Radar, Row, Screen, Shield } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
 import { T } from '@/src/ui/Text';
-import { colors, space } from '@/src/ui/tokens';
+import { colors, font, space } from '@/src/ui/tokens';
 import { success } from '@/src/ui/motion';
 import { fmtMin } from '@/src/ui/format';
 
@@ -30,6 +30,7 @@ export default function Status() {
   const enabled = STAT_IDS.filter(k => p.stats[k].enabled);
   const lvl = playerLevel(p);
   const dreamTitle = (id?: string) => p.dreams.find(d => d.id === id)?.title;
+  const dreams = p.dreams.filter(d => d.active && !d.achievedAt);
 
   return (
     <Screen>
@@ -51,10 +52,41 @@ export default function Status() {
       <Window title="Daily quests" kana="クエスト" tone="white" meta={open ? `${open} unreported` : 'all reported'}>
         {quests.map(q => (
           <QuestRow key={q.id} quest={q} report={reportOf(q.id)} dream={dreamTitle(q.dreamId)}
-            onDone={() => { success(); report(q.id, 'done', q.target); }}
+            onDone={() => {
+              // Count quests go up one at a time (1/5, 2/5...); check and timer quests complete in one tap.
+              const r = reportOf(q.id);
+              const have = r?.kind === 'done' ? r.units : 0;
+              if (have >= q.target) return;
+              success();
+              report(q.id, 'done', q.type === 'count' ? have + 1 : q.target);
+            }}
             onDidnt={() => report(q.id, 'didnt', 0)} />
         ))}
         <T style={s.hint}>Honesty beats perfection. A confession costs nothing; silence costs XP and Honor.</T>
+      </Window>
+
+      <Window title="Dreams" kana="夢" meta={`${dreams.length} / 3 active`}>
+        <View style={{ gap: space.s4 }}>
+          {dreams.map(d => {
+            const pr = dreamProgress(p, d);
+            const nextStep = d.milestones.find(m => !m.doneAt);
+            return (
+              <Pressable key={d.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/dream', params: { id: d.id } })} style={{ gap: 6 }} testID={`dream-${d.id}`}>
+                <Row>
+                  <T style={s.dreamT} numberOfLines={1}>{d.title}</T>
+                  <View style={{ flex: 1 }} />
+                  <T v="num" style={{ fontSize: 13 }}>{Math.round(pr.value * 100)}%</T>
+                </Row>
+                <Bar value={pr.value} color={colors.blue} h={6} />
+                <T style={s.sub2} numberOfLines={2}>
+                  {nextStep ? `Next: ${nextStep.title} · ${pr.clears}/${CLEARS_PER_STEP} quest clears` : 'All milestones done'}
+                  {pr.daysLeft !== undefined ? ` · ${pr.daysLeft >= 0 ? `${pr.daysLeft}d left` : `${-pr.daysLeft}d over`} · ${pr.onPace ? 'on pace' : 'behind'}` : ''}
+                </T>
+              </Pressable>
+            );
+          })}
+          {dreams.length < 3 && <Button small variant="ghost" label={dreams.length ? 'Add a dream' : 'Add your first dream'} onPress={() => router.push('/dream')} />}
+        </View>
       </Window>
 
       <Window title="Stats" kana="能力値" meta={`LV ${lvl} · RANK ${rankFor(lvl)}`}>
@@ -94,5 +126,7 @@ const s = StyleSheet.create({
   sub: { marginTop: space.s2, fontSize: 13, color: colors.white3 },
   hint: { marginTop: space.s3, fontSize: 12, color: colors.ink2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space.s4 },
+  dreamT: { fontFamily: font.textSemi, fontSize: 15, color: colors.white, flexShrink: 1 },
+  sub2: { fontSize: 12, color: colors.white3 },
   debuff: { fontSize: 11, color: colors.purpleSoft, fontWeight: '700' },
 });

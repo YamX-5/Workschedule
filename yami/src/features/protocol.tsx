@@ -30,6 +30,12 @@ export function JudgmentRules({ preset, onChange }: { preset: Preset; onChange: 
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+export const TYPE_HELP: Record<QuestType, string> = {
+  check: 'Check: one tap on Done and it is cleared. For things you either did or did not do.',
+  count: 'Count: tap +1 each time you do one (1/5, 2/5...). XP is paid per unit, so 3 of 5 still earns 3 units. Cleared at the target.',
+  timer: 'Timer: do it for the set minutes, then tap Done. Knee rehab has its own hold timer in the Quest tab.',
+};
+
 export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
   quest: Quest; statName: (s: StatId) => string; onSave: (q: Quest) => void; onDelete?: () => void; onCancel: () => void;
 }) {
@@ -46,8 +52,10 @@ export function QuestEditor({ quest, statName, onSave, onDelete, onCancel }: {
       <Field label="Quest" value={q.title} onChangeText={title => { setQ({ ...q, title }); setErr(''); }} error={err === 'Name the quest' ? err : undefined} testID="qe-title" />
       <T v="label">Stat</T>
       <Segmented label="Stat" value={q.stat} onChange={stat => setQ({ ...q, stat })} options={STAT_IDS.map(k => ({ v: k, label: statName(k).slice(0, 5) }))} />
+      <T style={{ fontSize: 12, color: colors.white2 }}>The stat this quest levels up. Rename or switch off stats in the Stats section above.</T>
       <T v="label">Type</T>
       <Segmented<QuestType> label="Type" value={q.type} onChange={type => setQ({ ...q, type })} options={[{ v: 'check', label: 'Check' }, { v: 'count', label: 'Count' }, { v: 'timer', label: 'Timer' }]} />
+      <T testID="qe-type-help" style={{ fontSize: 12, color: colors.white2 }}>{TYPE_HELP[q.type]}</T>
       <Row style={{ gap: space.s3 }}>
         <Field label="XP" value={String(q.xp)} keyboardType="number-pad" onChangeText={t => setQ({ ...q, xp: parseInt(t, 10) || 0 })} />
         {q.type !== 'check' && <Field label={q.type === 'timer' ? 'Minutes' : 'Target'} value={String(q.target)} keyboardType="number-pad" onChangeText={t => setQ({ ...q, target: parseInt(t, 10) || 0 })} />}

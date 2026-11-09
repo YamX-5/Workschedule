@@ -197,3 +197,36 @@ describe('progression', () => {
     expect(addDream(p, { ...dream, id: 'd5', active: false })).not.toBe('too-many');
   });
 });
+
+import { dreamProgress, CLEARS_PER_STEP } from '../src/domain/progress';
+describe('dream progress', () => {
+  const T0 = new Date('2026-11-01T12:00:00').getTime();
+  const base = () => {
+    const p = newProfile();
+    const d = { id: 'd', title: 'Athletic again', why: '', stat: 'body' as const, createdAt: T0, active: true,
+      milestones: [{ id: 'm1', title: 'a', doneAt: T0 + 1000 }, { id: 'm2', title: 'b' }] };
+    p.dreams = [d];
+    p.quests = p.quests.map(q => (q.id === 'perio' ? { ...q, dreamId: 'd' } : q));
+    return { p, d };
+  };
+  test('a confirmed milestone is half of a 2-step dream', () => {
+    const { p, d } = base();
+    expect(dreamProgress(p, d, T0).value).toBeCloseTo(0.5);
+  });
+  test('linked quest clears fill the next step but never complete it', () => {
+    const { p, d } = base();
+    for (let i = 0; i < 15; i++) p.reports.push({ questId: 'perio', dayKey: `k${i}`, kind: 'done', units: 1, at: T0 + 5000 + i, late: false });
+    const pr = dreamProgress(p, d, T0);
+    expect(pr.clears).toBe(CLEARS_PER_STEP);
+    expect(pr.value).toBeCloseTo(1);
+    p.reports.push({ questId: 'rehab', dayKey: 'x', kind: 'done', units: 5, at: T0 + 9000, late: false });
+    expect(dreamProgress(p, d, T0).clears).toBe(CLEARS_PER_STEP);
+  });
+  test('deadline: days left and pace', () => {
+    const { p, d } = base();
+    const due = { ...d, due: '2026-11-30' };
+    const pr = dreamProgress(p, due, new Date('2026-11-10T12:00:00').getTime());
+    expect(pr.daysLeft).toBe(21);
+    expect(pr.onPace).toBe(true); // 50% done, ~31% of the time gone
+  });
+});

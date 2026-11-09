@@ -44,6 +44,8 @@ export function Screen({ children, scroll = true, hud = true }: { children: Reac
       ) : (
         <View style={[{ flex: 1 }, pad]}>{hud && <Hud />}{children}</View>
       )}
+      {/* keep scrolled content from running under the clock and battery icons */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: ins.top, backgroundColor: colors.black }} />
     </View>
   );
 }

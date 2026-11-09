@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useYami } from '@/src/data/store';
 import { playerLevel, rankFor } from '@/src/domain/progress';
 import { formFor, nextForm } from '@/src/domain/forms';
-import { Avatar } from '@/src/ui/Avatar';
+import { CharacterView } from '@/src/ui/CharacterView';
 import { ArcGrid, RecordList, WeekChart } from '@/src/features/path';
 import { Bar, Row, Screen } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
@@ -30,8 +30,11 @@ export default function Path() {
   return (
     <Screen>
       <Window title="Player" kana="プレイヤー" meta={p.title}>
-        <Row style={{ gap: space.s4, alignItems: 'flex-end' }}>
-          <Avatar tier={form.tier} size={104} />
+        <View style={{ alignItems: 'center' }}>
+          <CharacterView tier={form.tier} size={190} />
+          <T style={{ fontSize: 11, color: colors.white3, letterSpacing: 1 }}>DRAG TO SPIN</T>
+        </View>
+        <Row style={{ gap: space.s4, marginTop: space.s3 }}>
           <View style={{ flex: 1, gap: 6 }}>
             <Row><View style={s.rank}><T style={s.rankT}>{rank}</T></View><T v="label">Rank</T></Row>
             <T v="display" style={{ fontSize: 15 }}>{form.name}</T>

@@ -84,6 +84,37 @@ describe('store', () => {
     expect(S().importProfile(json)).toBe(true);
     expect(S().profile).toMatchObject({ name: 'Yaman', rewards: [{ id: 'r', title: 'Shoes', cost: 600 }] });
   });
+  test('XP lands instantly and Judgment does not pay it twice', () => {
+    S().runJudgment(new Date('2026-11-08T12:00:00'));
+    // only perio is scheduled, so its stat changes at Judgment come from perio alone
+    S().profile.quests.filter(q => q.id !== 'perio').forEach(q => S().deleteQuest(q.id));
+    S().report('perio', 'done', 1, new Date('2026-11-08T12:00:00'));
+    const perio = S().profile.quests.find(q => q.id === 'perio')!;
+    const st = S().profile.stats[perio.stat];
+    expect(S().gain).toMatchObject({ xp: perio.xp });
+    expect(S().profile.reports[0].xp).toBe(perio.xp);
+    const afterReport = { ...st };
+    // re-reporting the same thing banks nothing new
+    S().report('perio', 'done', 1, new Date('2026-11-08T13:00:00'));
+    expect(S().profile.stats[perio.stat]).toEqual(afterReport);
+    // judgment settles only the difference: the cleared quest adds no more XP
+    const out = S().runJudgment(new Date('2026-11-09T09:00:00'))!;
+    expect(out.results.find(r => r.questId === 'perio')!.verdict).toBe('cleared');
+    expect(S().profile.stats[perio.stat]).toEqual(afterReport);
+  });
+  test('switching done -> didnt takes the instant XP back', () => {
+    const before = { ...S().profile.stats };
+    S().report('perio', 'done', 1, new Date('2026-11-08T12:00:00'));
+    S().report('perio', 'didnt', 0, new Date('2026-11-08T12:05:00'));
+    expect(S().profile.stats).toEqual(before);
+    expect(S().profile.shards).toBe(0);
+  });
+  test('count quests bank XP per unit', () => {
+    const salah = S().profile.quests.find(q => q.id === 'salah')!;
+    S().report('salah', 'done', 1, new Date('2026-11-08T12:00:00'));
+    S().report('salah', 'done', 2, new Date('2026-11-08T12:10:00'));
+    expect(S().profile.reports[0]).toMatchObject({ units: 2, xp: salah.xp * 2 });
+  });
   test('todayKey before Fajr is yesterday', () => expect(todayKey(S().profile, new Date('2026-11-09T03:00:00'))).toBe('2026-11-08'));
 });
 

@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, ReportKind, Reward, StatId } from '../domain/types';
+import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, Report, ReportKind, Reward, StatId } from '../domain/types';
 import { newProfile } from '../domain/defaults';
 import { addDays, atOnDay, dayKey } from '../domain/time';
-import { judgeDay } from '../domain/judgment';
+import { instantReward, judgeDay } from '../domain/judgment';
 import { fall } from '../domain/fall';
-import { addDream as addDreamRule, claimReward as claimRule, completeMilestone as milestoneRule, playerLevel } from '../domain/progress';
+import { applyXp } from '../domain/xp';
+import { formFor } from '../domain/forms';
+import { addDream as addDreamRule, claimReward as claimRule, completeMilestone as milestoneRule, playerLevel, unlock } from '../domain/progress';
 import { prayerTimes } from '../prayer/prayer';
 import { migrate } from './migrate';
 
@@ -31,9 +33,17 @@ function rollUsage(p: Profile, key: string): Profile {
 
 export type JudgmentOutcome = ReturnType<typeof judgeDay> & { newRecords?: RecordId[]; levelBefore?: number };
 
+/** A small "+XP" pop after a report. Not persisted. */
+export interface Gain { id: number; xp: number; shards: number; stat: string; levelUp: boolean }
+/** A full-screen win moment (level up, new form, milestone, dream). Not persisted. */
+export interface Celebration { title: string; sub: string; kind: 'level' | 'form' | 'milestone' | 'dream' }
+
 interface YamiState {
   profile: Profile;
   lastJudgment: JudgmentOutcome | null;
+  gain: Gain | null;
+  celebration: Celebration | null;
+  dismissCelebration(): void;
   report(questId: string, kind: ReportKind, units: number, now?: Date): void;
   addUsage(min: number, now?: Date): void;
   earnMinutes(min: number, now?: Date): number;
@@ -67,15 +77,39 @@ export const useYami = create<YamiState>()(
       return {
         profile: newProfile(),
         lastJudgment: null,
+        gain: null,
+        celebration: null,
+        dismissCelebration() { set({ celebration: null }); },
 
         report(questId, kind, units, now = new Date()) {
-          patch(p => {
-            const q = p.quests.find(x => x.id === questId);
-            if (!q) return p;
-            const key = todayKey(p, now);
-            const late = now > atOnDay(key, q.deadline, p.protocol.fajrAlarm);
-            const reports = p.reports.filter(r => !(r.questId === questId && r.dayKey === key));
-            return { ...p, reports: [...reports, { questId, dayKey: key, kind, units, at: now.getTime(), late }] };
+          const p = get().profile;
+          const q = p.quests.find(x => x.id === questId);
+          if (!q) return;
+          const key = todayKey(p, now);
+          const late = now > atOnDay(key, q.deadline, p.protocol.fajrAlarm);
+          const prev = p.reports.find(r => r.questId === questId && r.dayKey === key);
+          const r: Report = { questId, dayKey: key, kind, units, at: now.getTime(), late };
+          const earned = instantReward(p, q, r);
+          // Bank the difference from any earlier report today, so re-reporting never double-counts.
+          const dXp = earned.xp - (prev?.xp ?? 0);
+          const dShards = earned.shards - (prev?.shards ?? 0);
+          const { stat, levelChange } = applyXp(p.stats[q.stat], dXp);
+          const next: Profile = {
+            ...p,
+            stats: { ...p.stats, [q.stat]: stat },
+            shards: Math.max(0, p.shards + dShards),
+            reports: [...p.reports.filter(x => x !== prev), { ...r, ...earned }],
+          };
+          const before = playerLevel(p);
+          const after = playerLevel(next);
+          const formBefore = formFor(before);
+          const formAfter = formFor(after);
+          set({
+            profile: unlock(next, now.getTime()),
+            gain: dXp ? { id: now.getTime(), xp: dXp, shards: dShards, stat: p.stats[q.stat].name, levelUp: levelChange > 0 } : get().gain,
+            celebration: formAfter.tier > formBefore.tier
+              ? { title: `New form: ${formAfter.name}`, sub: formAfter.upgrade, kind: 'form' }
+              : after > before ? { title: `Level ${after}`, sub: `${p.stats[q.stat].name} grew stronger.`, kind: 'level' } : get().celebration,
           });
         },
 
@@ -188,7 +222,19 @@ export const useYami = create<YamiState>()(
           return true;
         },
         updateDream(d) { patch(p => ({ ...p, dreams: p.dreams.map(x => (x.id === d.id ? d : x)) })); },
-        completeMilestone(dreamId, milestoneId, now = new Date()) { patch(p => milestoneRule(p, dreamId, milestoneId, now.getTime())); },
+        completeMilestone(dreamId, milestoneId, now = new Date()) {
+          const p = get().profile;
+          const next = milestoneRule(p, dreamId, milestoneId, now.getTime());
+          if (next === p) return;
+          const d = next.dreams.find(x => x.id === dreamId)!;
+          const ms = d.milestones.find(m => m.id === milestoneId)!;
+          set({
+            profile: next,
+            celebration: d.achievedAt
+              ? { title: 'Dream achieved', sub: `${d.title}. +100 Shards and a new title.`, kind: 'dream' }
+              : { title: 'Milestone cleared', sub: `${ms.title}. +100 XP, +20 Shards.`, kind: 'milestone' },
+          });
+        },
         upsertReward(r) {
           patch(p => ({ ...p, rewards: p.rewards.some(x => x.id === r.id) ? p.rewards.map(x => (x.id === r.id ? r : x)) : [...p.rewards, r] }));
         },
@@ -201,7 +247,7 @@ export const useYami = create<YamiState>()(
         },
 
         triggerFall(now = new Date()) { patch(p => fall(p, now.getTime())); },
-        reset() { set({ profile: newProfile(), lastJudgment: null }); },
+        reset() { set({ profile: newProfile(), lastJudgment: null, gain: null, celebration: null }); },
         importProfile(json) {
           try {
             const raw = JSON.parse(json);

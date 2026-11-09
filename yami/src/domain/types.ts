@@ -25,6 +25,9 @@ export interface Report {
   units: number;
   at: number; // epoch ms
   late: boolean;
+  /** XP and Shards already banked the moment this was reported; Judgment only settles the difference. */
+  xp?: number;
+  shards?: number;
 }
 
 export interface StatState { level: number; xp: number; enabled: boolean; name: string }
@@ -55,6 +58,8 @@ export interface Dream {
   stat: StatId;
   milestones: { id: string; title: string; doneAt?: number }[];
   createdAt: number;
+  /** Optional target date, 'YYYY-MM-DD'. */
+  due?: string;
   achievedAt?: number;
   active: boolean;
 }

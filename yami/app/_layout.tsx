@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { useYami } from '@/src/data/store';
 import { syncReminders } from '@/src/notify/reminders';
 import { colors } from '@/src/ui/tokens';
+import { CelebrationOverlay, GainToast } from '@/src/features/Rewards';
 
 export { ErrorBoundary } from 'expo-router';
 export const unstable_settings = { anchor: '(tabs)' };
@@ -55,6 +56,8 @@ export default function RootLayout() {
         <Stack.Screen name="dream" options={{ presentation: 'modal' }} />
         <Stack.Screen name="shop" options={{ presentation: 'modal' }} />
       </Stack>
+      <GainToast />
+      <CelebrationOverlay />
     </GestureHandlerRootView>
   );
 }

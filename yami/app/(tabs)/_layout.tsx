@@ -33,6 +33,9 @@ function Icon({ name, c }: { name: string; c: string }) {
 function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
   return (
+    <>
+    {/* solid strip behind the floating bar so scrolled content never shows around or under it */}
+    <View pointerEvents="none" style={[s.backdrop, { height: TAB_BAR_H + ins.bottom + space.s3 * 2 }]} />
     <View style={[s.bar, { bottom: ins.bottom + space.s3 }]} accessibilityRole="tablist">
       {state.routes.map((r, i) => {
         const on = state.index === i;
@@ -47,6 +50,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
         );
       })}
     </View>
+    </>
   );
 }
 
@@ -59,7 +63,8 @@ export default function TabLayout() {
 }
 
 const s = StyleSheet.create({
-  bar: { position: 'absolute', left: space.s4, right: space.s4, height: TAB_BAR_H, flexDirection: 'row', padding: 6, gap: 4, backgroundColor: 'rgba(11,9,21,0.94)', borderWidth: 1, borderColor: colors.line },
+  backdrop: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.black },
+  bar: { position: 'absolute', left: space.s4, right: space.s4, height: TAB_BAR_H, flexDirection: 'row', padding: 6, gap: 4, backgroundColor: '#0B0915', borderWidth: 1, borderColor: colors.line },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   on: { backgroundColor: colors.white },
   lbl: { fontFamily: font.textBold, fontSize: 11, letterSpacing: 0.8, textTransform: 'uppercase' },
