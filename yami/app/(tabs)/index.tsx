@@ -5,6 +5,7 @@ import { useYami, todayKey } from '@/src/data/store';
 import { frictionSec, minutesLeft, phoneState } from '@/src/domain/budget';
 import { CLEARS_PER_STEP, dreamProgress, playerLevel, rankFor } from '@/src/domain/progress';
 import { xpToNext } from '@/src/domain/xp';
+import { DAILY_XP_CAP } from '@/src/domain/economy';
 import { weekday } from '@/src/domain/time';
 import { STAT_IDS } from '@/src/domain/types';
 import { QuestRow } from '@/src/features/QuestRow';
@@ -36,6 +37,7 @@ export default function Status() {
   const lvl = playerLevel(p);
   const dreamTitle = (id?: string) => p.dreams.find(d => d.id === id)?.title;
   const dreams = p.dreams.filter(d => d.active && !d.achievedAt);
+  const xpToday = p.usage.dayKey === key ? p.usage.xpEarned ?? 0 : 0;
 
   return (
     <Screen>
@@ -76,6 +78,12 @@ export default function Status() {
             }}
             onDidnt={() => report(q.id, 'didnt', 0)} />
         ))}
+        {quests.length > 0 && (
+          <View style={{ marginTop: space.s3, gap: 6 }} testID="xp-today">
+            <Row><T style={s.xpL}>XP today</T><View style={{ flex: 1 }} /><T style={s.xpV}>{xpToday} / {DAILY_XP_CAP}</T></Row>
+            <Bar value={xpToday / DAILY_XP_CAP} color={colors.purple} track={colors.inkLine} h={6} />
+          </View>
+        )}
         {quests.length > 0 && <T style={s.hint}>Honesty beats perfection. A confession costs nothing; silence costs XP and Honor.</T>}
       </Window>
 
@@ -152,6 +160,8 @@ const useS = themed(colors => ({
   stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space.s4 },
   dreamT: { fontFamily: font.textSemi, fontSize: 15, color: colors.white, flexShrink: 1 },
   sub2: { fontSize: 12, color: colors.white3 },
+  xpL: { fontFamily: font.textSemi, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: colors.ink2 },
+  xpV: { fontFamily: font.display, fontSize: 12, color: colors.ink },
   emptyT: { fontFamily: font.textSemi, fontSize: 16, color: colors.ink },
   emptySub: { fontSize: 13, color: colors.ink2 },
   debuff: { fontSize: 11, color: colors.purpleSoft, fontWeight: '700' },
