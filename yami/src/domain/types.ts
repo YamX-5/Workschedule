@@ -69,6 +69,21 @@ export interface Dream {
 
 export interface Reward { id: string; title: string; cost: number }
 
+/** A one-off to-do. No date = inbox/someday. Completing banks `xp` into `stat` instantly. */
+export interface Task {
+  id: string;
+  title: string;
+  /** 'YYYY-MM-DD' */
+  date?: string;
+  /** 'HH:MM' */
+  time?: string;
+  stat?: StatId;
+  xp: number;
+  doneAt?: number;
+  calendarEventId?: string;
+  notes?: string;
+}
+
 export interface DaySummary {
   dayKey: string;
   usedMin: number;
@@ -114,6 +129,7 @@ export interface Profile {
   honor: number;
   stats: Record<StatId, StatState>;
   quests: Quest[];
+  tasks: Task[];
   reports: Report[];
   judgedDays: string[];
   debuffs: { stat: StatId; dayKey: string }[];

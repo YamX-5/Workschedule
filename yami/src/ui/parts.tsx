@@ -1,6 +1,6 @@
 // Small shared pieces: hero backdrop, screen shell, HUD, bars, segmented control, radar.
-import { Children, useEffect, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Children, isValidElement, useEffect, type ReactNode } from 'react';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
@@ -71,7 +71,12 @@ export function Screen({ children, scroll = true, hud = true }: { children: Reac
 
 /** Panels rise in one after another when a screen mounts (once; re-renders do not replay it). */
 export function Stagger({ children }: { children: ReactNode }) {
-  return <>{Children.toArray(children).map((ch, i) => <Animated.View key={i} entering={enter(i)}>{ch}</Animated.View>)}</>;
+  // Web: Reanimated's web entering animations can leave panels stacked on top of each other, so web skips them.
+  if (Platform.OS === 'web') return <>{children}</>;
+  // Key by the child's own key, so a panel appearing or disappearing doesn't remount (and replay) its siblings.
+  return <>{Children.toArray(children).map((ch, i) => (
+    <Animated.View key={isValidElement(ch) && ch.key != null ? ch.key : i} entering={enter(i)}>{ch}</Animated.View>
+  ))}</>;
 }
 
 export function Hud() {

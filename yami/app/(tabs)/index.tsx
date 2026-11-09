@@ -8,6 +8,7 @@ import { xpToNext } from '@/src/domain/xp';
 import { weekday } from '@/src/domain/time';
 import { STAT_IDS } from '@/src/domain/types';
 import { QuestRow } from '@/src/features/QuestRow';
+import { TodayPlanCard } from '@/src/features/plan';
 import { Bar, Radar, Row, Screen, Shield } from '@/src/ui/parts';
 import { Window } from '@/src/ui/Window';
 import { Button } from '@/src/ui/Button';
@@ -68,6 +69,8 @@ export default function Status() {
         ))}
         <T style={s.hint}>Honesty beats perfection. A confession costs nothing; silence costs XP and Honor.</T>
       </Window>
+
+      <TodayPlanCard />
 
       <Window title="Dreams" kana="夢" meta={`${dreams.length} / 3 active`}>
         <View style={{ gap: space.s4 }}>

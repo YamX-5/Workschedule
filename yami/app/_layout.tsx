@@ -63,6 +63,7 @@ export default function RootLayout() {
         <Stack.Screen name="protocol" options={{ presentation: 'modal', animation: sheet }} />
         <Stack.Screen name="dream" options={{ presentation: 'modal', animation: sheet }} />
         <Stack.Screen name="shop" options={{ presentation: 'modal', animation: sheet }} />
+        <Stack.Screen name="plan" options={{ presentation: 'modal', animation: sheet }} />
       </Stack>
       <GainToast />
       <CelebrationOverlay />
