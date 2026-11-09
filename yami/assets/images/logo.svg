@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254">
+  <!-- Yami mark: the 門 gate from 闇 (darkness), with steps climbing out. Traced from the approved design and squared up. -->
+  <g id="mark">
+    <path fill="#F2F0F7" fill-rule="evenodd" d="M361 391H608V562H447V857H361Z M447 462V511H532V462Z" />
+    <path fill="#F2F0F7" fill-rule="evenodd" d="M647 391H894V857H808V562H647Z M722 462V511H807V462Z" />
+    <g fill="#6B3BD9">
+      <rect x="484" y="756" width="116" height="45" />
+      <rect x="569" y="697" width="116" height="45" />
+      <rect x="654" y="638" width="116" height="45" />
+    </g>
+  </g>
+</svg>
