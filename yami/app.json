@@ -19,7 +19,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.yami.system",
-      "allowBackup": false
+      "allowBackup": false,
+      "permissions": ["android.permission.READ_CALENDAR", "android.permission.WRITE_CALENDAR"]
     },
     "web": {
       "bundler": "metro",
@@ -32,6 +33,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Yami shows your calendar events next to your plan and can add your tasks to your calendar.",
+          "remindersPermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, Report, ReportKind, Reward, StatId } from '../domain/types';
+import type { Dream, GateMark, Profile, Protocol, Quest, RecordId, Report, ReportKind, Reward, StatId, Task } from '../domain/types';
 import { newProfile } from '../domain/defaults';
 import { addDays, atOnDay, dayKey } from '../domain/time';
 import { instantReward, judgeDay } from '../domain/judgment';
@@ -11,6 +11,7 @@ import { formFor } from '../domain/forms';
 import { addDream as addDreamRule, claimReward as claimRule, completeMilestone as milestoneRule, playerLevel, unlock } from '../domain/progress';
 import { prayerTimes } from '../prayer/prayer';
 import { migrate } from './migrate';
+import { toggleTaskRule } from '../domain/tasks';
 
 export const EARN_CAP_MIN = 30;
 const MAX_BACKFILL_DAYS = 3;
@@ -64,6 +65,11 @@ interface YamiState {
   upsertReward(r: Reward): void;
   deleteReward(id: string): void;
   claimReward(id: string, now?: Date): boolean;
+  addTask(t: Task): void;
+  updateTask(t: Task): void;
+  deleteTask(id: string): void;
+  /** Complete banks the task's XP now (with the +XP toast); undo takes it back. */
+  toggleTask(id: string, now?: Date): void;
   triggerFall(now?: Date): void;
   reset(): void;
   /** Replace the profile from a backup string. Returns false (and changes nothing) if it isn't a Yami backup. */
@@ -244,6 +250,19 @@ export const useYami = create<YamiState>()(
           if (r === 'not-enough') return false;
           set({ profile: r });
           return true;
+        },
+
+        addTask(t) { patch(p => ({ ...p, tasks: [...p.tasks, t] })); },
+        updateTask(t) { patch(p => ({ ...p, tasks: p.tasks.map(x => (x.id === t.id ? t : x)) })); },
+        deleteTask(id) { patch(p => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) })); },
+        toggleTask(id, now = new Date()) {
+          const p = get().profile;
+          const r = toggleTaskRule(p, id, now.getTime());
+          if (!r) return;
+          set({
+            profile: r.profile,
+            gain: { id: now.getTime(), xp: r.xp, shards: 0, stat: p.stats[r.stat].name, levelUp: r.levelChange > 0 },
+          });
         },
 
         triggerFall(now = new Date()) { patch(p => fall(p, now.getTime())); },

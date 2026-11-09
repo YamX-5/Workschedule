@@ -47,6 +47,7 @@ export function newProfile(): Profile {
     honor: 50,
     stats: { deen: stat('deen'), body: stat('body'), mind: stat('mind'), craft: stat('craft'), rest: stat('rest') },
     quests: seedQuests(),
+    tasks: [],
     reports: [],
     judgedDays: [],
     debuffs: [],
